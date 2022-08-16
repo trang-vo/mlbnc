@@ -1,0 +1,35 @@
+feature_extractor:
+  sup_feature_extractor: GNNGraphExtractor
+  sup_hidden_size: 64 
+  sup_num_layers: 2
+  sup_n_clusters: 2
+  sup_dropout: 0
+  ori_feature_extractor: GINEGraphExtractor
+  ori_hidden_size: 64
+  ori_num_layers: 2
+  ori_n_clusters: 2
+  ori_dropout: 0
+  statistic_extractor: MLP
+  statistic_hidden_sizes:
+    - 128
+  statistic_output_size: 64
+dqn:
+  verbose: 1
+  batch_size: 256 
+  target_update_interval: 2000
+  train_freq: 
+    - 1
+    - step
+  learning_starts: 0.0001
+  gamma: 1
+  buffer_size: 10000
+  exploration_initial_eps: 1
+  exploration_final_eps: 0.05
+  gradient_steps: -1
+  device: cpu
+learn:
+  eval_freq: 1
+  n_eval_episodes: 1
+  total_timesteps: 1000000
+  log_interval: 1
+  
