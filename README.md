@@ -1,2 +1,2 @@
-# mlbnc
-Machine Learning for Branch-and-Cut
+# Machine Learning for Branch-and-Cut
+
