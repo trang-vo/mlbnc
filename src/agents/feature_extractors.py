@@ -15,7 +15,7 @@ def preprocess_graph_representation(
     edge_index: torch.Tensor,
     edge_feature: torch.Tensor,
     lens: torch.Tensor,
-) -> Tuple[torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Keys, values of observation
     node_feature: (batch, num_nodes, node_dim)
@@ -62,7 +62,7 @@ class GNNGraphExtractor(nn.Module):
         n_clusters: int = 2,
         dropout: float = 0,
         device: str = "cpu",
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__()
 
@@ -123,7 +123,7 @@ class GINEGraphExtractor(nn.Module):
         num_layers: int,
         dropout: float = 0,
         device: str = "cpu",
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__()
         self.num_layers = num_layers

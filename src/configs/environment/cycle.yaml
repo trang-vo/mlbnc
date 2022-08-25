@@ -8,7 +8,7 @@ sup_node_dim: 1
 sup_edge_dim: 1
 statistic_dim: 12
 data_folder: ../data/maxcut_instances/100
-user_callback: EnvCycleUserCallback
+user_callback: EnvUserCallback
 k: 10
 limited_one_action: 2000
 time_limit: 3000

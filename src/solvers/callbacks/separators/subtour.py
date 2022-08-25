@@ -24,8 +24,8 @@ class SubtourSeparator(Separator):
 
     def get_lazy_constraints(
         self, support_graph: nx.Graph
-    ) -> List[Tuple[List[int], List[int], int]]:
-        constraints: List[Tuple[List[int], List[int], int]] = []
+    ) -> List[Tuple[List[int], List[int], str, int]]:
+        constraints: List[Tuple[List[int], List[int], str, int]] = []
         components = list(nx.connected_components(support_graph))
 
         if len(components) > 1:
@@ -33,15 +33,16 @@ class SubtourSeparator(Separator):
                 edges = support_graph.subgraph(cc).edges
                 vars = [self.var2idx[nodes2edge(*edge)] for edge in edges]
                 coefs = [1] * len(vars)
-                constraints.append((vars, coefs, len(edges) - 1))
+                sense = "L"
+                constraints.append((vars, coefs, sense, len(edges) - 1))
 
         return constraints
 
     def get_user_cuts(
         self, support_graph: nx.Graph
-    ) -> List[Tuple[List[int], List[int], int]]:
+    ) -> List[Tuple[List[int], List[int], str, int]]:
         tree: nx.Graph = nx.gomory_hu_tree(support_graph, capacity="weight")
-        cuts: List[Tuple[List[int], List[int], int]] = []
+        cuts: List[Tuple[List[int], List[int], str, int]] = []
 
         for edge in tree.edges:
             if 2 - tree.edges[edge]["weight"] > TOLERANCE:
@@ -56,7 +57,8 @@ class SubtourSeparator(Separator):
                     for v in V2:
                         vars.append(self.var2idx[nodes2edge(u, v)])
                 coefs = [1] * len(vars)
+                sense = "G"
 
-                cuts.append((vars, coefs, 2))
+                cuts.append((vars, coefs, sense, 2))
 
         return cuts

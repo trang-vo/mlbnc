@@ -15,20 +15,21 @@ feature_extractor:
   statistic_output_size: 64
 dqn:
   verbose: 1
-  batch_size: 256 
+  batch_size: 512
   target_update_interval: 2000
   train_freq: 
-    - 1
+    - 100
     - step
   learning_starts: 0.0001
   gamma: 1
-  buffer_size: 10000
+  buffer_size: 100
   exploration_initial_eps: 1
   exploration_final_eps: 0.05
-  gradient_steps: -1
+  gradient_steps: 1
   device: cpu
+  tensorboard_log: ../logs/dqn_tensorboard/
 learn:
-  eval_freq: 1
+  eval_freq: 20
   n_eval_episodes: 1
   total_timesteps: 1000000
   log_interval: 1

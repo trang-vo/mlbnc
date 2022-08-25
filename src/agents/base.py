@@ -6,11 +6,12 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 from stable_baselines3 import DQN
 from lescode.namespace import asdict
-from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
+from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.logger import configure
 import torch
 
-from .extractor_name import EXTRACTOR_NAME
+from .feature_extractor_name import FEATURE_EXTRACTOR_NAME
 from .feature_extractors import FeatureExtractor
 
 
@@ -19,9 +20,25 @@ class DumpLogsEveryNTimeSteps(BaseCallback):
         super(DumpLogsEveryNTimeSteps, self).__init__(verbose)
         self.check_freq = n_steps
 
-    def _on_step(self) -> None:
+    def _on_step(self):
         if self.n_calls % self.check_freq == 0:
             self.model._dump_logs()
+        return True
+
+
+class SaveReplayBufferEveryNTimeSteps(BaseCallback):
+    def __init__(self, save_dir: str, n_steps=10000, verbose=1):
+        super(SaveReplayBufferEveryNTimeSteps, self).__init__(verbose)
+        self.check_freq = n_steps
+        self.save_dir = save_dir
+
+    def _on_step(self) -> bool:
+        return True
+
+    def _on_rollout_end(self):
+        if self.n_calls % self.check_freq == 0:
+            save_path = os.path.join(self.save_dir, "buffer_{}_step.pkl".format(self.n_calls))
+            self.model.save_replay_buffer(save_path)
         return True
 
 
@@ -62,11 +79,16 @@ class EvalCheckpointCallback(EvalCallback):
                 )
 
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
-            mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
+            mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(
+                episode_lengths
+            )
             self.last_mean_reward = mean_reward
 
             if self.verbose > 0:
-                print(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+                print(
+                    f"Eval num_timesteps={self.num_timesteps}, "
+                    f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}"
+                )
                 print(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
             # Add to current Logger
             self.logger.record("eval/mean_reward", float(mean_reward))
@@ -79,13 +101,26 @@ class EvalCheckpointCallback(EvalCallback):
                 self.logger.record("eval/success_rate", success_rate)
 
             # Dump log so the evaluation results are printed with the correct timestep
-            self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+            self.logger.record(
+                "time/total_timesteps", self.num_timesteps, exclude="tensorboard"
+            )
             self.logger.dump(self.num_timesteps)
+
+            if mean_reward > self.best_mean_reward:
+                if self.verbose > 0:
+                    print("New best mean reward!")
+                if self.best_model_save_path is not None:
+                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
+                self.best_mean_reward = mean_reward
 
             if mean_reward > -1000:
                 if self.best_model_save_path is not None:
-                    self.model.save(os.path.join(self.best_model_save_path, "model_{}_steps".format(self.n_calls)))
-                self.best_mean_reward = mean_reward
+                    self.model.save(
+                        os.path.join(
+                            self.best_model_save_path,
+                            "model_{}_steps".format(self.n_calls),
+                        )
+                    )
                 # Trigger callback if needed
                 if self.callback is not None:
                     return self._on_event()
@@ -108,26 +143,32 @@ class DQNAgent:
         self.model = None
 
     def train(
-        self,
-        env,
-        eval_env,
-        env_config,
-        extractor_config,
-        model_config,
-        learn_config,
-        model_folder,
-        pretrain_path=None,
-        log_path="../logs/",
+            self,
+            env,
+            eval_env,
+            env_config,
+            extractor_config,
+            model_config,
+            learn_config,
+            model_folder,
+            pretrain_path=None,
+            log_path="../logs/",
     ):
         with open(log_path + "config.json", "w") as file:
             json.dump(
-                asdict({"dqn": asdict(model_config), "learn": learn_config}), file
+                {
+                    "dqn": asdict(model_config),
+                    "learn": asdict(learn_config),
+                    "env": asdict(env_config),
+                    "extractor": asdict(extractor_config),
+                },
+                file,
             )
 
         device = torch.device(model_config["device"])
         print("Device to train model", device)
 
-        sup_feature_extractor = EXTRACTOR_NAME[
+        sup_feature_extractor = FEATURE_EXTRACTOR_NAME[
             extractor_config["sup_feature_extractor"]
         ](
             node_dim=env_config["sup_node_dim"],
@@ -139,7 +180,7 @@ class DQNAgent:
             device=device,
         )
 
-        ori_feature_extractor = EXTRACTOR_NAME[
+        ori_feature_extractor = FEATURE_EXTRACTOR_NAME[
             extractor_config["ori_feature_extractor"]
         ](
             node_dim=env_config["ori_node_dim"],
@@ -151,7 +192,7 @@ class DQNAgent:
             device=device,
         )
 
-        statistic_extractor = EXTRACTOR_NAME[extractor_config["statistic_extractor"]](
+        statistic_extractor = FEATURE_EXTRACTOR_NAME[extractor_config["statistic_extractor"]](
             input_size=env_config["statistic_dim"],
             hidden_sizes=extractor_config["statistic_hidden_sizes"],
             output_size=extractor_config["statistic_output_size"],
@@ -174,13 +215,12 @@ class DQNAgent:
 
         if not pretrain_path:
             print("CREATE NEW MODEL")
-            model_prefix = "model"
         else:
             print("LOAD PRETRAIN MODEL")
-            self.model.load_parameters(pretrain_path)
-            model_prefix = "pretrain"
+            self.model.set_parameters(pretrain_path)
 
         log_callback = DumpLogsEveryNTimeSteps(n_steps=1000)
+        save_buffer_callback = SaveReplayBufferEveryNTimeSteps(log_path, n_steps=model_config.buffer_size)
         eval_callback = EvalCheckpointCallback(
             eval_env,
             best_model_save_path=log_path,
@@ -190,15 +230,12 @@ class DQNAgent:
             render=False,
             n_eval_episodes=learn_config.n_eval_episodes,
         )
-        # checkpoint_callback = CheckpointCallback(
-        #     save_freq=learn_config.eval_freq,
-        #     save_path=log_path,
-        #     name_prefix=model_prefix,
-        # )
+        logger = configure(log_path, ["stdout", "csv", "tensorboard"])
 
+        self.model.set_logger(logger)
         self.model.learn(
             total_timesteps=learn_config.total_timesteps,
             log_interval=learn_config.log_interval,
-            callback=[eval_callback, log_callback],
+            callback=[eval_callback, log_callback, save_buffer_callback],
         )
         self.model.save(log_path + model_folder + ".pt")

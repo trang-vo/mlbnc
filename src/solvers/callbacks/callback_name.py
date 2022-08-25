@@ -1,10 +1,8 @@
-from .subtour import *
-from .cycle import *
+from .base import *
 
 
 CALLBACK_NAME = {
-    "SubtourUserCallback": SubtourUserCallback,
-    "CycleUserCallback": CycleUserCallback,
-    "EnvSubtourUserCallback": EnvSubtourUserCallback,
-    "EnvCycleUserCallback": EnvCycleUserCallback,
+    "BaseUserCallback": BaseUserCallback,
+    "RLUserCallback": RLUserCallback,
+    "EnvUserCallback": EnvUserCallback,
 }

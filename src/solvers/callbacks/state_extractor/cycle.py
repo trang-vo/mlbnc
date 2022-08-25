@@ -1,7 +1,9 @@
 from typing import *
+from typing import Dict
 
 import numpy as np
 import networkx as nx
+from numpy import ndarray
 
 from solvers.callbacks.state_extractor.base import StateExtractor
 from solvers.callbacks.separators.cycle import CycleSeparator
@@ -9,18 +11,13 @@ from solvers.cplex_api import UserCutCallback
 from problems.maxcut import MaxcutProblem
 from utils import nodes2edge
 from constant import TOLERANCE
-from config import EnvConfig
 
 
 class CycleStateExtractor(StateExtractor):
     def __init__(
-        self, separator: CycleSeparator, config, padding=True, *args, **kwds
+        self, separator: CycleSeparator, padding=False, *args, **kwds
     ) -> None:
-        super().__init__(*args, **kwds)
-        self.init_config = EnvConfig(config)
-
-        self.padding = padding
-        self.separator = separator
+        super().__init__(separator, padding, *args, **kwds)
 
     def initialize_original_graph(
         self, problem: MaxcutProblem, var2idx: Dict[Tuple[int, int], int], **kwargs
@@ -50,6 +47,11 @@ class CycleStateExtractor(StateExtractor):
         )
 
         if self.padding:
+            assert (
+                    self.init_config.ori_nEdges >= self.ori_edge_index.shape[1]
+            ), "ori_nEdges {} < ori_edge_index {}".format(
+                self.init_config.ori_nEdges, self.ori_edge_index.shape[1]
+            )
             self.ori_edge_index = np.concatenate(
                 [
                     self.ori_edge_index,
@@ -60,9 +62,7 @@ class CycleStateExtractor(StateExtractor):
                 axis=1,
             )
 
-    def get_support_graph_representation(
-        self, support_graph: nx.Graph
-    ) -> Tuple[np.array, np.array, np.array, np.array]:
+    def get_support_graph_representation(self, support_graph: nx.Graph) -> Dict[str, ndarray]:
         node_feature = np.array(
             [[len(support_graph.adj[node])] for node in support_graph.nodes]
         )
@@ -72,7 +72,7 @@ class CycleStateExtractor(StateExtractor):
         node_label = {}
         for node in support_graph.nodes:
             node_label[node] = len(node_label)
-        nx.relabel_nodes(support_graph, node_label)
+        support_graph = nx.relabel_nodes(support_graph, node_label)
 
         for node in support_graph.nodes:
             for neighbor in support_graph.adj[node]:
@@ -85,6 +85,21 @@ class CycleStateExtractor(StateExtractor):
         lens = np.asarray([node_feature.shape[0], edge_feature.shape[0]])
 
         if self.padding:
+            assert (
+                    self.init_config.sup_nNodes >= node_feature.shape[0]
+            ), "sup_nNodes {} < node feature {}".format(
+                self.init_config.sup_nNodes, node_feature.shape[0]
+            )
+            assert (
+                    self.init_config.sup_nEdges >= edge_index.shape[1]
+            ), "sup_nEdges {} < edge index {}".format(
+                self.init_config.sup_nEdges, edge_index.shape[1]
+            )
+            assert (
+                    self.init_config.sup_nEdges >= edge_feature.shape[0]
+            ), "sup_nEdges {} < edge feature {}".format(
+                self.init_config.sup_nEdges, edge_feature.shape[0]
+            )
             node_feature = np.concatenate(
                 [
                     node_feature,
@@ -115,16 +130,10 @@ class CycleStateExtractor(StateExtractor):
                 ]
             )
 
-        return dict(
-            sup_node_feature=node_feature,
-            sup_edge_index=edge_index,
-            sup_edge_feature=edge_feature,
-            sup_lens=lens,
-        )
+        return dict(sup_node_feature=node_feature, sup_edge_index=edge_index, sup_edge_feature=edge_feature,
+                    sup_lens=lens)
 
-    def get_original_graph_representation(
-        self, solution: np.array, lb: np.array, ub: np.array
-    ) -> Tuple[np.array, np.array, np.array, np.array]:
+    def get_original_graph_representation(self, solution: np.array, lb: np.array, ub: np.array) -> Dict[str, np.array]:
         ori_edge_feature = []
         for idx, edge_idx in enumerate(self.ori_edge_index_list):
             ori_edge_feature.append(
@@ -138,6 +147,11 @@ class CycleStateExtractor(StateExtractor):
 
         ori_edge_feature = np.asarray(ori_edge_feature)
         if self.padding:
+            assert (
+                    self.init_config.ori_nEdges >= ori_edge_feature.shape[0]
+            ), "ori_nEdges {} < ori_edge_feature {}".format(
+                self.init_config.ori_nEdges, ori_edge_feature.shape[0]
+            )
             ori_edge_feature = np.concatenate(
                 [
                     ori_edge_feature,
@@ -159,7 +173,7 @@ class CycleStateExtractor(StateExtractor):
 
     def get_state_representation(
         self, callback: UserCutCallback
-    ) -> Tuple[nx.Graph, Dict[str, np.array]]:
+    ) -> Tuple[Dict[str, np.array], nx.Graph]:
         solution = np.asarray(callback.get_values())
         support_graph = self.separator.create_support_graph(solution)
         sup_representation = self.get_support_graph_representation(support_graph)
@@ -176,26 +190,23 @@ class CycleStateExtractor(StateExtractor):
         obj = callback.get_objective_value()
 
         statistic = [
-            callback.get_current_node_depth() / self.init_config.instance_size,
+            callback.get_current_node_depth() / self.instance_size,
             callback.has_incumbent(),
             gap,
             sum(np.where(abs(solution - 1) < TOLERANCE, 1, 0))
-            / self.init_config.instance_size,
-            callback.get_cutoff() / obj
-            if abs(obj) > 1e-4
-            and abs(callback.get_cutoff()) < self.init_config.ori_nEdges / 2
-            else 0,
+            / self.instance_size,
+            min(1, callback.get_cutoff() / obj)
+            if abs(obj) > 1e-4 else 0,
             remain_leaves / total_leaves if total_leaves > 0 else 0,
             processed_leaves / total_leaves if total_leaves > 0 else 0,
-            np.sum(lb) / self.init_config.instance_size,
+            np.sum(lb) / self.instance_size,
             (lb.shape[0] - np.sum(lb)) / solution.shape[0],
             np.sum(ub) / solution.shape[0],
             (ub.shape[0] - np.sum(ub)) / solution.shape[0],
             sum(np.where(abs(lb - ub) < TOLERANCE, 1, 0)) / solution.shape[0],
         ]
 
-        state: Dict[str, np.array] = {}
-        state["statistic"] = np.asarray(statistic)
+        state: Dict[str, np.array] = {"statistic": np.asarray(statistic)}
 
         for representation in [sup_representation, ori_representation]:
             for key, value in representation.items():

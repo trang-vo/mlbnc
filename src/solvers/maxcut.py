@@ -2,17 +2,17 @@ from time import time
 
 from .base import Solver, CALLBACK_NAME
 from problems.maxcut import MaxcutProblem
-from .callbacks.cycle import CycleLazyCallback
+from .callbacks.base import BaseLazyCallback
 from .callbacks.separators.cycle import CycleSeparator
 
 
 class MaxcutSolver(Solver):
-    def __init__(self, problem: MaxcutProblem) -> None:
-        super().__init__(problem)
+    def __init__(self, problem: MaxcutProblem, **kwargs) -> None:
+        super().__init__(problem, **kwargs)
         self.separator = CycleSeparator(self.edge2idx, self.graph)
 
-        lazy_constraint = self.register_callback(CycleLazyCallback)
-        lazy_constraint.set_attribute(self.separator, origin_graph=self.graph)
+        lazy_constraint = self.register_callback(BaseLazyCallback)
+        lazy_constraint.set_attribute(self.separator)
 
     def create_mip_formulation(self):
         self.objective.set_sense(self.objective.sense.maximize)

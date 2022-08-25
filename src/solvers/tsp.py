@@ -3,16 +3,16 @@ from time import time
 
 from .base import Solver, cplex, CALLBACK_NAME
 from problems.tsp import TSPProblem
-from .callbacks.subtour import SubtourLazyCallback
+from .callbacks.base import BaseLazyCallback
 from .callbacks.separators.subtour import SubtourSeparator
 
 
 class TSPSolver(Solver):
-    def __init__(self, problem: TSPProblem) -> None:
-        super().__init__(problem)
+    def __init__(self, problem: TSPProblem, **kwargs) -> None:
+        super().__init__(problem, **kwargs)
         self.separator = SubtourSeparator(self.edge2idx)
 
-        lazy_constraint = self.register_callback(SubtourLazyCallback)
+        lazy_constraint = self.register_callback(BaseLazyCallback)
         lazy_constraint.set_attribute(self.separator)
 
     def create_mip_formulation(self):

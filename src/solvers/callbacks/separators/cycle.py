@@ -53,6 +53,7 @@ class CycleSeparator(Separator):
                 if length + TOLERANCE < 1 and len(node_path) == len(edge_path):
                     expr, coefs = [], []
                     rhs = 0
+                    sense = "L"
                     for edge in edge_path:
                         expr.append(
                             self.var2idx[nodes2edge(int(edge[0]), int(edge[1]))]
@@ -62,7 +63,7 @@ class CycleSeparator(Separator):
                         else:
                             coefs.append(1)
                             rhs += 1
-                    cuts.append((expr, coefs, rhs - 1))
+                    cuts.append((expr, coefs, sense, rhs - 1))
             except nx.exception.NetworkXNoPath:
                 continue
 

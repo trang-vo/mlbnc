@@ -14,13 +14,9 @@ from config import EnvConfig
 
 class SubtourStateExtractor(StateExtractor):
     def __init__(
-        self, separator: SubtourSeparator, config, padding=True, *args, **kwds
+        self, separator: SubtourSeparator, padding=False, *args, **kwds
     ) -> None:
-        super().__init__(*args, **kwds)
-        self.init_config = EnvConfig(config)
-
-        self.padding = padding
-        self.separator = separator
+        super().__init__(separator, padding, *args, **kwds)
 
     def initialize_original_graph(
         self, problem: TSPProblem, var2idx: Dict[Tuple[int, int], int], k=10
@@ -63,9 +59,11 @@ class SubtourStateExtractor(StateExtractor):
         )
 
         if self.padding:
-            assert self.init_config.ori_nEdges >= self.ori_edge_index.shape[1], \
-                "ori_nEdges {} < ori_edge_index {}".format(
-                    self.init_config.ori_nEdges, self.ori_edge_index.shape[1])
+            assert (
+                self.init_config.ori_nEdges >= self.ori_edge_index.shape[1]
+            ), "ori_nEdges {} < ori_edge_index {}".format(
+                self.init_config.ori_nEdges, self.ori_edge_index.shape[1]
+            )
             self.ori_edge_index = np.concatenate(
                 [
                     self.ori_edge_index,
@@ -168,12 +166,21 @@ class SubtourStateExtractor(StateExtractor):
         lens = np.asarray([node_feature.shape[0], edge_feature.shape[0]])
 
         if self.padding:
-            assert self.init_config.instance_size >= node_feature.shape[0], \
-                "instance size {} < node feature {}".format(self.init_config.instance_size, node_feature.shape[0])
-            assert self.init_config.sup_nEdges >= edge_index.shape[1], \
-                "sup_nEdges {} < edge index {}".format(self.init_config.sup_nEdges, edge_index.shape[1])
-            assert self.init_config.sup_nEdges >= edge_feature.shape[0], \
-                "sup_nEdges {} < edge feature {}".format(self.init_config.sup_nEdges, edge_feature.shape[0])
+            assert (
+                self.init_config.instance_size >= node_feature.shape[0]
+            ), "instance size {} < node feature {}".format(
+                self.init_config.instance_size, node_feature.shape[0]
+            )
+            assert (
+                self.init_config.sup_nEdges >= edge_index.shape[1]
+            ), "sup_nEdges {} < edge index {}".format(
+                self.init_config.sup_nEdges, edge_index.shape[1]
+            )
+            assert (
+                self.init_config.sup_nEdges >= edge_feature.shape[0]
+            ), "sup_nEdges {} < edge feature {}".format(
+                self.init_config.sup_nEdges, edge_feature.shape[0]
+            )
 
             node_feature = np.concatenate(
                 [
@@ -212,9 +219,7 @@ class SubtourStateExtractor(StateExtractor):
             sup_lens=lens,
         )
 
-    def get_original_graph_representation(
-        self, solution: np.array, lb: np.array, ub: np.array
-    ) -> Dict[str, np.array]:
+    def get_original_graph_representation(self, solution: np.array, lb: np.array, ub: np.array) -> Dict[str, np.array]:
         ori_edge_feature = []
         for idx, edge_idx in enumerate(self.ori_edge_index_list):
             ori_edge_feature.append(
@@ -228,8 +233,11 @@ class SubtourStateExtractor(StateExtractor):
 
         ori_edge_feature = np.asarray(ori_edge_feature)
         if self.padding:
-            assert self.init_config.ori_nEdges >= ori_edge_feature.shape[0], \
-                "ori_nEdges {} < ori_edge_feature {}".format(self.init_config.ori_nEdges, ori_edge_feature.shape[0])
+            assert (
+                self.init_config.ori_nEdges >= ori_edge_feature.shape[0]
+            ), "ori_nEdges {} < ori_edge_feature {}".format(
+                self.init_config.ori_nEdges, ori_edge_feature.shape[0]
+            )
             ori_edge_feature = np.concatenate(
                 [
                     ori_edge_feature,
@@ -280,8 +288,7 @@ class SubtourStateExtractor(StateExtractor):
             sum(np.where(abs(lb - ub) < TOLERANCE, 1, 0)) / solution.shape[0],
         ]
 
-        state: Dict[str, np.array] = {}
-        state["statistic"] = np.asarray(statistic)
+        state: Dict[str, np.array] = {"statistic": np.asarray(statistic)}
 
         for representation in [sup_representation, ori_representation]:
             for key, value in representation.items():
