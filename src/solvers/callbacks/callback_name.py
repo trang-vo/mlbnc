@@ -1,4 +1,5 @@
 from .base import *
+from .env_callback import EnvUserCallback
 
 
 CALLBACK_NAME = {

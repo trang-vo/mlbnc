@@ -9,10 +9,13 @@ from lescode.namespace import asdict
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
+from stable_baselines3.common.buffers import DictReplayBuffer
 import torch
 
 from .feature_extractor_name import FEATURE_EXTRACTOR_NAME
 from .feature_extractors import FeatureExtractor
+from .buffers import PriorDictReplayBuffer
+from environments.base import BaseCutEnv, PriorCutEnv
 
 
 class DumpLogsEveryNTimeSteps(BaseCallback):
@@ -110,17 +113,17 @@ class EvalCheckpointCallback(EvalCallback):
                 if self.verbose > 0:
                     print("New best mean reward!")
                 if self.best_model_save_path is not None:
-                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
+                    model_path = os.path.join(self.best_model_save_path, "best_model")
+                    torch.save({"features_extractor": self.model.q_net.features_extractor.state_dict(),
+                                "agent": self.model.q_net.q_net}, model_path)
                 self.best_mean_reward = mean_reward
 
             if mean_reward > -1000:
                 if self.best_model_save_path is not None:
-                    self.model.save(
-                        os.path.join(
-                            self.best_model_save_path,
-                            "model_{}_steps".format(self.n_calls),
-                        )
-                    )
+                    model_path = os.path.join(self.best_model_save_path, "model_{}_steps.pt".format(self.n_calls))
+                    torch.save({"features_extractor": self.model.q_net.features_extractor.state_dict(),
+                                "agent": self.model.q_net.q_net}, model_path)
+
                 # Trigger callback if needed
                 if self.callback is not None:
                     return self._on_event()
@@ -209,8 +212,15 @@ class DQNAgent:
             },
         )
 
+        replay_buffer_class = None
+        if isinstance(env, BaseCutEnv):
+            replay_buffer_class = DictReplayBuffer
+        elif isinstance(env, PriorCutEnv):
+            replay_buffer_class = PriorDictReplayBuffer
+
         self.model = DQN(
-            "MultiInputPolicy", env, policy_kwargs=policy_kwargs, **model_config
+            "MultiInputPolicy", env, replay_buffer_class=replay_buffer_class, policy_kwargs=policy_kwargs,
+            **model_config
         )
 
         if not pretrain_path:

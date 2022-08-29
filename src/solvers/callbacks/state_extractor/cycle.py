@@ -213,3 +213,31 @@ class CycleStateExtractor(StateExtractor):
                 state[key] = value
 
         return state, support_graph
+
+
+class PriorCycleStateExtractor(CycleStateExtractor):
+    def __init__(
+            self, separator: CycleSeparator, padding=False, *args, **kwds
+    ) -> None:
+        super().__init__(separator, padding, *args, **kwds)
+
+    def initialize_original_graph(
+        self, problem: MaxcutProblem, var2idx: Dict[Tuple[int, int], int], **kwargs
+    ) -> None:
+        super().initialize_original_graph(problem, var2idx)
+
+    def get_support_graph_representation(self, support_graph: nx.Graph) -> Dict[str, np.array]:
+        return super().get_support_graph_representation(support_graph)
+
+    def get_original_graph_representation(self, solution: np.array, lb: np.array, ub: np.array) -> Dict[str, np.array]:
+        return super().get_original_graph_representation(solution, lb, ub)
+
+    def get_state_representation(self, callback: UserCutCallback):
+        state, support_graph = super().get_state_representation(callback)
+
+        if callback.prev_cuts > 0:
+            state["prior"] = 5
+        else:
+            state["prior"] = 1
+
+        return state, support_graph

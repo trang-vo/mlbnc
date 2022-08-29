@@ -144,9 +144,7 @@ class SubtourStateExtractor(StateExtractor):
 
         return nx.relabel_nodes(output, new_label)
 
-    def get_support_graph_representation(
-        self, support_graph: nx.Graph
-    ) -> Dict[str, np.array]:
+    def get_support_graph_representation(self, support_graph: nx.Graph) -> Dict[str, np.array]:
         node_feature = []
         edge_feature = []
         edge_index = [[], []]
@@ -295,3 +293,38 @@ class SubtourStateExtractor(StateExtractor):
                 state[key] = value
 
         return state, support_graph
+
+
+class PriorSubtourStateExtractor(SubtourStateExtractor):
+    def __init__(
+            self, separator: SubtourSeparator, padding=False, *args, **kwds
+    ) -> None:
+        super().__init__(separator, padding, *args, **kwds)
+
+    def initialize_original_graph(
+        self, problem: TSPProblem, var2idx: Dict[Tuple[int, int], int], k=10
+    ) -> None:
+        super(PriorSubtourStateExtractor, self).initialize_original_graph(problem, var2idx, k)
+
+    def compress_support_graph(self, support_graph: nx.Graph) -> nx.Graph:
+        return super(PriorSubtourStateExtractor, self).compress_support_graph(support_graph)
+
+    def get_support_graph_representation(self, support_graph: nx.Graph) -> Dict[str, np.array]:
+        return super(PriorSubtourStateExtractor, self).get_support_graph_representation(support_graph)
+
+    def get_original_graph_representation(self, solution: np.array, lb: np.array, ub: np.array) -> Dict[str, np.array]:
+        return super(PriorSubtourStateExtractor, self).get_original_graph_representation(solution, lb, ub)
+
+    def get_state_representation(self, callback: UserCutCallback):
+        state, support_graph = super(PriorSubtourStateExtractor, self).get_state_representation(callback)
+
+        if callback.prev_cuts > 0:
+            state["prior"] = 5
+        else:
+            state["prior"] = 1
+
+        return state, support_graph
+
+
+
+

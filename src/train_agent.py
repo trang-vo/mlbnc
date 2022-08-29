@@ -5,14 +5,22 @@ from typing import *
 
 from lescode.config import load_config
 
-from environments.base import BaseCutEnv
+from environments.base import BaseCutEnv, PriorCutEnv
 from agents.base import DQNAgent
+
+
+ENV_NAME = {
+    "BaseCutEnv": BaseCutEnv,
+    "PriorCutEnv": PriorCutEnv,
+}
+
 
 if __name__ == "__main__":
     args = sys.argv
     # args = ["", "maxcut", "cycle"]
     problem_type: str = args[1]
     cut_type: str = args[2]
+    env_name: str = args[3]
 
     ENTRY_CONFIG = load_config(name="entry", path="configs/{}.yaml".format(cut_type)).detail
     ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
@@ -27,10 +35,10 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(logdir, folder))
     log_path = os.path.join(logdir, folder) + "/"
 
-    env = BaseCutEnv(ENV_CONFIG, problem_type=problem_type, cut_type=cut_type, mode="train")
+    env = ENV_NAME[env_name](ENV_CONFIG, problem_type=problem_type, cut_type=cut_type, mode="train")
     result_path = os.path.join(logdir, folder, "results_eval.csv")
-    eval_env = BaseCutEnv(ENV_CONFIG, problem_type=problem_type, cut_type=cut_type, mode="eval",
-                          result_path=result_path)
+    eval_env = ENV_NAME[env_name](ENV_CONFIG, problem_type=problem_type, cut_type=cut_type, mode="eval",
+                                  result_path=result_path)
 
     agent = DQNAgent()
     agent.train(

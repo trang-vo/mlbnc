@@ -56,15 +56,6 @@ if __name__ == "__main__":
     model_folder: str = args[6]
     model_name: str = args[7]
 
-    features_extractor_path = os.path.join(model_dir, model_folder, "features_extractor_{}.pt".format(model_name))
-    agent_path = os.path.join(model_dir, model_folder, "q_net_{}.pt".format(model_name))
-    if not os.path.isfile(features_extractor_path):
-        model_path = os.path.join(model_dir, model_folder, model_name)
-        print(model_path)
-        model = DQN.load(model_path)
-        torch.save(model.q_net.features_extractor.state_dict(), features_extractor_path)
-        torch.save(model.q_net.q_net, agent_path)
-
     config_path = os.path.join(model_dir, model_folder, "config.json")
     with open(config_path, "r") as file:
         config = json.load(file)
@@ -72,11 +63,17 @@ if __name__ == "__main__":
     prob = PROBLEM_NAME[problem_type](instance_path)
     solver = SOLVER_NAME[problem_type](prob)
 
-    state_extractor = STATE_EXTRACTOR_NAME[cut_type](solver.separator, padding=False, config=config["env"])
+    state_extractor = STATE_EXTRACTOR_NAME[cut_type]["default"](solver.separator, padding=False, config=config["env"])
     state_extractor.initialize_original_graph(prob, solver.edge2idx, k=config["env"]["k"])
+
+    model_path = os.path.join(model_dir, model_folder, model_name)
+    if not torch.cuda.is_available():
+        model = torch.load(model_path, map_location=torch.device('cpu'))
+    else:
+        model = torch.load(model_path)
     features_extractor = create_features_extractor(extractor_config=config["extractor"], env_config=config["env"])
-    features_extractor.load_state_dict(torch.load(features_extractor_path))
-    agent = torch.load(agent_path)
+    features_extractor.load_state_dict(model["features_extractor"])
+    agent = model["agent"]
 
     user_callback = solver.register_callback(CALLBACK_NAME[callback_type])
     user_cb_kwargs = {

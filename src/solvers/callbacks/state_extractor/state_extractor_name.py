@@ -1,7 +1,15 @@
-from .subtour import SubtourStateExtractor
-from .cycle import CycleStateExtractor
+from .subtour import SubtourStateExtractor, PriorSubtourStateExtractor
+from .cycle import *
 
 STATE_EXTRACTOR_NAME = {
-    "subtour": SubtourStateExtractor,
-    "cycle": CycleStateExtractor,
+    "subtour": {
+        "default": SubtourStateExtractor,
+        "SubtourStateExtractor": SubtourStateExtractor,
+        "PriorSubtourStateExtractor": PriorSubtourStateExtractor,
+    },
+    "cycle": {
+        "default": CycleStateExtractor,
+        "CycleStateExtractor": CycleStateExtractor,
+        "PriorCycleStateExtractor": PriorCycleStateExtractor,
+    },
 }

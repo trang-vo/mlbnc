@@ -18,6 +18,10 @@ import numpy as np
 from lescode.config import load_config, get_config
 
 
+ENTRY_CONFIG = load_config(name="entry", path="configs/cycle.yaml").detail
+ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
+AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
+
 def write_model_parameters():
     model_path = "../logs/CycleEnv_8171628/model_614000_steps"
     config_path = "../logs/CycleEnv_8171628/config.json"
@@ -83,8 +87,8 @@ def write_model_parameters():
     print(model.q_net.q_net)
 
     torch.save(model.q_net.features_extractor.state_dict(),
-               "../logs/CycleEnv_8171628/features_extractor_model_614000_steps.pt")
-    torch.save(model.q_net.q_net, "../logs/CycleEnv_8171628/q_net_model_614000_steps.pt")
+               "../logs/CycleEnv_8171628/features_extractor_model_748000_steps.pt")
+    torch.save(model.q_net.q_net, "../logs/CycleEnv_8171628/q_net_model_748000_steps.pt")
 
     print("finish")
 
@@ -108,9 +112,7 @@ if __name__ == "__main__":
     # solver = MaxcutSolver(prob)
     # solver.basic_solve(user_callback="CycleUserCallback", user_cb_kwargs={"origin_graph": prob.graph})
 
-    # ENTRY_CONFIG = load_config(name="entry", path="configs/cycle.yaml").detail
-    # ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
-    # AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
+
     #
     # env = BaseCutEnv(ENV_CONFIG, problem_type="maxcut", cut_type="cycle", mode="eval", result_path="../logs/result_eval.csv")
     # done = False
@@ -128,7 +130,10 @@ if __name__ == "__main__":
     # model_path = "../logs/CutEnv_gap_12_1_661057/model_976000_steps.zip"
     # model_path = "../logs/CycleEnv_8171628/model_614000_steps.zip"
     # model_path = "../logs/SubtourEnv_818544/model_1000_steps.zip"
-    model_path = "../logs/SubtourEnv_824542/model_60_steps.zip"
-    model = DQN.load(model_path)
-    print("finish")
+    # model_path = "../logs/best_model.zip"
+    # model = DQN.load(model_path, device="cpu")
+    # # model.load_replay_buffer("../logs/SubtourEnv_824109/buffer_100000_step.pkl", truncate_last_traj=False)
+    # print("finish")
+
+    write_model_parameters()
 
