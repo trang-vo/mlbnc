@@ -8,6 +8,7 @@ import gym
 from gym import spaces
 from torch.multiprocessing import Queue, Process
 import numpy as np
+from problem_generators.base import ensure_tsp_folder
 
 from solvers.solver_name import SOLVER_NAME
 from solvers.callbacks.state_extractor.state_extractor_name import STATE_EXTRACTOR_NAME
@@ -91,6 +92,9 @@ class BaseCutEnv(gym.Env):
         )
 
         self.data_folder = config["data_folder"]
+        #delete this if don't need this line
+        if problem_type=="tsp":
+            ensure_tsp_folder(self.data_folder,config["instance_size"])
         self.train_folder = os.path.join(self.data_folder, "train")
         self.train_instances = os.listdir(self.train_folder)
         self.eval_folder = os.path.join(self.data_folder, "eval")
