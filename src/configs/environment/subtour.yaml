@@ -1,10 +1,10 @@
-instance_size: 100
-ori_nEdges: 2000
+instance_size: 100 # the number of instance's nodes
+ori_nEdges: 2000 # the number of edges in k-nearest neighbors graph, around instance_size * k * 2
 ori_node_dim: 1
 ori_edge_dim: 4
 statistic_dim: 12
-sup_nNodes: 100
-sup_nEdges: 300
+sup_nNodes: 100 # the number of nodes of the support graph = instance_size
+sup_nEdges: 300 # the number of edges of the support graph, around instance_size * 3
 sup_node_dim: 1
 sup_edge_dim: 1
 data_folder: ../data/tsp_instances/100

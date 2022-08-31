@@ -1,8 +1,8 @@
-instance_size: 100
+instance_size: 100 # the number of instance's nodes
 ori_nEdges: 990 # = the number of edges in graph * 2 (times 2 because of the graph representation in pytorch-geometric)
 ori_node_dim: 1
 ori_edge_dim: 4
-sup_nNodes: 200
+sup_nNodes: 200 # the number of nodes of the support graph = instance_size
 sup_nEdges: 3960 # = the number of edges * 4 * 2 (times 4 because of separation problem and times 2 because of the graph representation in pytorch-geometric)
 sup_node_dim: 1
 sup_edge_dim: 1
