@@ -1,0 +1,2 @@
+time/fps,time/episodes,time/time_elapsed,rollout/ep_rew_mean,time/total_timesteps,rollout/ep_len_mean,rollout/exploration_rate
+1,1,15,-0.33,19,19.0,0.9998195000000001

@@ -31,7 +31,7 @@ class DictTransitionCache:
         self.actions = np.zeros((self.cache_size, self.n_envs, self.action_dim), dtype=action_space.dtype)
         self.rewards = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
         self.dones = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
-        self.infos:Dict[int,Dict[int,Dict[str, Any]]]=dict()
+        self.infos={i:{j:[] for j in range(self.n_envs)} for i in range(self.cache_size)}
         self.timeouts = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
         #helper data
         self.poses=np.zeros((self.n_envs,),dtype=np.int8)
@@ -43,7 +43,7 @@ class DictTransitionCache:
         self.poses=np.zeros((self.n_envs,),dtype=int)
         self.total_rewards=np.zeros((self.n_envs,),dtype=float)
         self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
-        self.infos.clear()
+        self.infos={i:{j:[] for j in range(self.n_envs)} for i in range(self.cache_size)}
 
     def cacheMulti(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]]) -> None:
         for key in self.observations.keys():
@@ -99,11 +99,11 @@ class DictTransitionCache:
             # Reshape needed when using multiple envs with discrete observations
             # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
             if isinstance(self.observation_space.spaces[key], spaces.Discrete):
-                obs[key] = obs[key].reshape((1,) + self.obs_shape[key])
+                obs[key] = np.array(obs[key]).reshape((1,) + self.obs_shape[key])
 
         for key in self.next_observations.keys():
             if isinstance(self.observation_space.spaces[key], spaces.Discrete):
-                next_obs[key] = next_obs[key].reshape((1,) + self.obs_shape[key])
+                next_obs[key] = np.array(next_obs[key]).reshape((1,) + self.obs_shape[key])
         
         # Same reshape, for actions
         if isinstance(self.action_space, spaces.Discrete):
@@ -115,8 +115,10 @@ class DictTransitionCache:
             return
 
         #do original things
-        self.observations[key][self.poses[env]][env] = np.array(obs[key])
-        self.next_observations[key][self.poses[env]][env] = np.array(next_obs[key]).copy()
+        for key in self.observations.keys():
+            self.observations[key][self.poses[env]][env] = np.array(obs[key])
+        for key in self.next_observations.keys():
+            self.next_observations[key][self.poses[env]][env] = np.array(next_obs[key]).copy()
         self.actions[self.poses[env]][env] = np.array(action).copy()
         self.rewards[self.poses[env]][env] = np.array(reward).copy()
         self.dones[self.poses[env]][env] = np.array(done).copy()
@@ -132,7 +134,7 @@ class DictTransitionCache:
             raise Exception("Epsiode in env{} exceeds the cache size {}".format(env,self.cache_size))
         #check done
         if done:
-            if "terminal_observation" in infos:
+            if not "terminal_observation" in infos:
                 self.done_flags[env]=True
                 #update the current_env
                 self.current_env=(self.current_env+1)%self.n_envs
@@ -196,10 +198,10 @@ class DictTransitionCache:
         tmp_observations,tmp_next_observations,tmp_actions,tmp_rewards,tmp_dones,tmp_infos=self.at(i)
 
         for key in buf.observations.keys():
-            buf.observations[key][buf.pos] = tmp_observations
+            buf.observations[key][buf.pos] = tmp_observations[key]
 
         for key in buf.next_observations.keys():
-            buf.next_observations[key][buf.pos] = tmp_next_observations
+            buf.next_observations[key][buf.pos] = tmp_next_observations[key]
 
         buf.actions[buf.pos] = tmp_actions
         buf.rewards[buf.pos] = tmp_rewards

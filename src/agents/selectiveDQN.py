@@ -51,7 +51,7 @@ class selectiveDQN(DQN):
         #current number of episodes in a rollout, used to end the rollout
         num_collected_episodes = 0
         #customed helper parameters
-        self.cache=DictTransitionCache(200,env.observation_space,env.action_space,2,self.ti)
+        self.cache=DictTransitionCache(200,env.observation_space,env.action_space,2,self.replay_buffer.handle_timeout_termination)
 
         assert isinstance(env, VecEnv), "You must pass a VecEnv"
         assert env.num_envs == 1, "OffPolicyAlgorithm only support single environment"
@@ -93,7 +93,7 @@ class selectiveDQN(DQN):
                     selected_trajectory_idx=self.cache.get_best_trajactory_index()
                     
                     #update original parameters
-                    episode_timesteps=self.cache.poses[selected_trajectory_idx]+1#reward in this episode
+                    episode_timesteps=self.cache.poses[selected_trajectory_idx]#reward in this episode
                     episode_reward=self.cache.total_rewards[selected_trajectory_idx]#steps in this episode
                     
                     #do original things
@@ -106,7 +106,6 @@ class selectiveDQN(DQN):
                         self._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)#update the remaining steps/episode of this training, also used to controll the explore rate
                         self._on_step()#update 
                     #reset the cache
-                    self.cache.clear()
                     
                 if not should_collect_more_steps(train_freq, num_collected_steps, num_collected_episodes):
                     break
@@ -123,6 +122,9 @@ class selectiveDQN(DQN):
                 # Log training infos
                 if log_interval is not None and self._episode_num % log_interval == 0:
                     self._dump_logs()#TODO:modify self.start_time
+
+            self.cache.clear()
+                
 
         mean_reward = np.mean(episode_rewards) if num_collected_episodes > 0 else 0.0
 
