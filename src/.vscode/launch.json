@@ -5,15 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Generate TSP instances",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/tsp_generator.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "args": ["100","../data/tsp_instances/","1","200","progen"]
-        },
-        {
             "name": "Train Agent",
             "type": "python",
             "request": "launch",
