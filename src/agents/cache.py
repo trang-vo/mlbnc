@@ -1,0 +1,397 @@
+from typing import Any, Dict, Generator, List, Optional, Union
+
+import numpy as np
+import torch as th
+from stable_baselines3.common.preprocessing import get_action_dim, get_obs_shape
+from stable_baselines3.common.buffers import DictReplayBuffer
+from stable_baselines3.common.type_aliases import DictReplayBufferSamples
+from stable_baselines3.common.vec_env import VecNormalize
+from gym import spaces
+
+
+class DictTransitionCache:
+    def __init__(self,cache_size:int,observation_space: spaces.Space, action_space: spaces.Space,n_envs:int,handle_timeout_termination: bool = True):
+        #basic information
+        self.cache_size=cache_size
+        self.n_envs=n_envs
+        self.handle_timeout_termination=handle_timeout_termination
+        self.observation_space=observation_space
+        self.action_space=action_space
+        self.obs_shape = get_obs_shape(observation_space)
+        self.action_dim = get_action_dim(action_space)
+        #data
+        self.observations = {
+            key: np.zeros((self.cache_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
+            for key, _obs_shape in self.obs_shape.items()
+        }
+        self.next_observations = {
+            key: np.zeros((self.cache_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
+            for key, _obs_shape in self.obs_shape.items()
+        }
+        self.actions = np.zeros((self.cache_size, self.n_envs, self.action_dim), dtype=action_space.dtype)
+        self.rewards = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
+        self.dones = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
+        self.infos:Dict[int,Dict[int,Dict[str, Any]]]=dict()
+        self.timeouts = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
+        #helper data
+        self.poses=np.zeros((self.n_envs,),dtype=np.int8)
+        self.total_rewards=np.zeros((self.n_envs,),dtype=np.float32)
+        self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
+        self.current_env=0#start with env0
+
+    def clear(self):
+        self.poses=np.zeros((self.n_envs,),dtype=int)
+        self.total_rewards=np.zeros((self.n_envs,),dtype=float)
+        self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
+        self.infos.clear()
+
+    def cacheMulti(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]]) -> None:
+        for key in self.observations.keys():
+            # Reshape needed when using multiple envs with discrete observations
+            # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                obs[key] = obs[key].reshape((self.n_envs,) + self.obs_shape[key])
+
+        for key in self.next_observations.keys():
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                next_obs[key] = next_obs[key].reshape((self.n_envs,) + self.obs_shape[key])
+        
+        # Same reshape, for actions
+        if isinstance(self.action_space, spaces.Discrete):
+            action = action.reshape((self.n_envs, self.action_dim))
+
+        for env in range(self.n_envs):
+            #if this is a pause state, skip it
+            if "pause" in infos[env]:
+                continue
+
+            #do original things
+            self.observations[key][self.poses[env]] = np.array(obs[key][env])
+            self.next_observations[key][self.poses[env]] = np.array(next_obs[key][env]).copy()
+            self.actions[self.poses[env]] = np.array(action[env]).copy()
+            self.rewards[self.poses[env]] = np.array(reward[env]).copy()
+            self.dones[self.poses[env]] = np.array(done[env]).copy()
+            self.infos[self.poses[env]] = {i:infos[i].copy() for i in range(self.n_envs)}
+
+            if self.handle_timeout_termination:
+                self.timeouts[self.poses[env]] = np.array([info.get("TimeLimit.truncated", False) for info in infos[env]])
+
+            self.poses[env] += 1
+            self.total_rewards[env]+=reward[env]
+
+            if self.poses[env] == self.cache_size:
+                raise Exception("Epsiode in env{} exceeds the cache size {}".format(env,self.cache_size))
+            #check done
+            if done[env]:
+                if "terminal_observation" in infos[env]:
+                    self.done_flags[env]=True
+                else:
+                    raise Exception("Env{} done but has no 'terminal_observation' feild in its info".format(env))
+
+    def cacheSingle(self,obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: Dict[str, Any],to_env:int=None):
+        #if to_env not assigned, count the env using current env
+        if to_env==None:
+            to_env=self.current_env
+        elif to_env not in range(self.n_envs):
+            raise Exception("Cannot cache to env{}, index out of range".format(to_env))
+
+        for key in self.observations.keys():
+            # Reshape needed when using multiple envs with discrete observations
+            # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                obs[key] = obs[key].reshape((1,) + self.obs_shape[key])
+
+        for key in self.next_observations.keys():
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                next_obs[key] = next_obs[key].reshape((1,) + self.obs_shape[key])
+        
+        # Same reshape, for actions
+        if isinstance(self.action_space, spaces.Discrete):
+            action = action.reshape((1, self.action_dim))
+
+        env=to_env
+        #if this is a pause state, skip it
+        if "pause" in infos:
+            return
+
+        #do original things
+        self.observations[key][self.poses[env]] = np.array(obs[key])
+        self.next_observations[key][self.poses[env]] = np.array(next_obs[key]).copy()
+        self.actions[self.poses[env]] = np.array(action).copy()
+        self.rewards[self.poses[env]] = np.array(reward).copy()
+        self.dones[self.poses[env]] = np.array(done).copy()
+        self.infos[self.poses[env]][env]=infos.copy()
+
+        if self.handle_timeout_termination:
+            self.timeouts[self.poses[env]] = np.array([info.get("TimeLimit.truncated", False) for info in infos])
+
+        self.poses[env] += 1
+        self.total_rewards[env]+=reward
+
+        if self.poses[env] == self.cache_size:
+            raise Exception("Epsiode in env{} exceeds the cache size {}".format(env,self.cache_size))
+        #check done
+        if done:
+            if "terminal_observation" in infos:
+                self.done_flags[env]=True
+                #update the current_env
+                self.current_env=(self.current_env+1)%self.n_envs
+            else:
+                raise Exception("Env{} done but has no 'terminal_observation' feild in its info".format(env))
+
+    def all_done(self):
+        """check if every environment has finished its episode"""
+        return self.done_flags.all()
+
+    def get_best_trajactory_index(self):
+        if self.all_done():
+            return self.total_rewards.argmax()
+        else:
+            raise Exception("Cannot get best trajactory index before all env done")
+
+    def cycle_concat(len,start,end,source:np.ndarray,dest:np.ndarray):
+        if np.shape(source[0])==np.shape(dest[0]):
+            if start+len<=end:
+                dest[start:start+len]=source[:len]
+                return start+len
+            else:
+                len1=end-start
+                len2=start+len-end
+                dest[start:end]=source[:len1]
+                dest[:len2]=source[len1:len]
+                return len2
+        else:
+            raise Exception("Inconsist shape")
+
+    def add_cache_to_buf(self,buf:DictReplayBuffer):
+        idx=self.get_best_trajactory_index()
+        trajectory_len=self.poses[idx,:]
+        buf_pos=buf.pos
+        buf_size=buf_size
+
+        for key in self.observations.keys():
+            self.cycle_concat(trajectory_len,buf_pos,buf_size,self.observations[key][idx,:],buf.observations[key])
+        for key in self.next_observations.keys():
+            self.cycle_concat(trajectory_len,buf_pos,buf_size,self.next_observations[key][idx,:],buf.next_observations[key])
+        self.cycle_concat(trajectory_len,buf_pos,buf_size,self.actions[key][idx,:],buf.actions[key])
+        self.cycle_concat(trajectory_len,buf_pos,buf_size,self.rewards[key][idx,:],buf.rewards[key])
+        self.cycle_concat(trajectory_len,buf_pos,buf_size,self.dones[key][idx,:],buf.dones[key])
+        if self.handle_timeout_termination:
+            self.cycle_concat(trajectory_len,buf_pos,buf_size,self.timeouts[key][idx,:],buf.timeouts[key])
+
+        if buf.pos+trajectory_len<=buf.buffer_size:
+            end_pos=self.pos+trajectory_len
+        else:
+            end_pos=buf.pos+trajectory_len-buf.buffer_size
+            buf.full=True
+        buf.pos=end_pos
+        
+        if buf.pos==buf.buffer_size:
+            buf.full=True
+            buf.pos=0
+
+        print("cache trajectory_len:{}, from env{}".format(trajectory_len,idx))
+
+
+class DictCache:
+    def __init__(self,cache_size:int,observation_space: spaces.Space, action_space: spaces.Space,n_envs:int,handle_timeout_termination: bool = True):
+        #basic information
+        self.cache_size=cache_size
+        self.n_envs=n_envs
+        self.handle_timeout_termination=handle_timeout_termination
+        self.observation_space=observation_space
+        self.action_space=action_space
+        self.obs_shape = get_obs_shape(observation_space)
+        self.action_dim = get_action_dim(action_space)
+        #data
+        self.observations = {
+            key: np.zeros((self.cache_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
+            for key, _obs_shape in self.obs_shape.items()
+        }
+        self.next_observations = {
+            key: np.zeros((self.cache_size, self.n_envs) + _obs_shape, dtype=observation_space[key].dtype)
+            for key, _obs_shape in self.obs_shape.items()
+        }
+        self.actions = np.zeros((self.cache_size, self.n_envs, self.action_dim), dtype=action_space.dtype)
+        self.rewards = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
+        self.dones = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
+        self.infos:Dict[int,Dict[int,Dict[str, Any]]]=dict()
+        self.timeouts = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
+        #helper data
+        self.poses=np.zeros((self.n_envs,),dtype=np.int8)
+        self.total_rewards=np.zeros((self.n_envs,),dtype=np.float32)
+        self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
+        self.current_env=0#start with env0
+
+    def clear(self):
+        self.poses=np.zeros((self.n_envs,),dtype=int)
+        self.total_rewards=np.zeros((self.n_envs,),dtype=float)
+        self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
+        self.infos.clear()
+
+    def cacheMulti(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]]) -> None:
+        for key in self.observations.keys():
+            # Reshape needed when using multiple envs with discrete observations
+            # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                obs[key] = obs[key].reshape((self.n_envs,) + self.obs_shape[key])
+
+        for key in self.next_observations.keys():
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                next_obs[key] = next_obs[key].reshape((self.n_envs,) + self.obs_shape[key])
+        
+        # Same reshape, for actions
+        if isinstance(self.action_space, spaces.Discrete):
+            action = action.reshape((self.n_envs, self.action_dim))
+
+        for env in range(self.n_envs):
+            #if this is a pause state, skip it
+            if "pause" in infos[env]:
+                continue
+
+            #do original things
+            self.observations[key][self.poses[env]] = np.array(obs[key][env])
+            self.next_observations[key][self.poses[env]] = np.array(next_obs[key][env]).copy()
+            self.actions[self.poses[env]] = np.array(action[env]).copy()
+            self.rewards[self.poses[env]] = np.array(reward[env]).copy()
+            self.dones[self.poses[env]] = np.array(done[env]).copy()
+            self.infos[self.poses[env]] = {i:infos[i].copy() for i in range(self.n_envs)}
+
+            if self.handle_timeout_termination:
+                self.timeouts[self.poses[env]] = np.array([info.get("TimeLimit.truncated", False) for info in infos[env]])
+
+            self.poses[env] += 1
+            self.total_rewards[env]+=reward[env]
+
+            if self.poses[env] == self.cache_size:
+                raise Exception("Epsiode in env{} exceeds the cache size {}".format(env,self.cache_size))
+            #check done
+            if done[env]:
+                if "terminal_observation" in infos[env]:
+                    self.done_flags[env]=True
+                else:
+                    raise Exception("Env{} done but has no 'terminal_observation' feild in its info".format(env))
+
+    def cacheSingle(self,obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: Dict[str, Any],to_env:int=None):
+        #if to_env not assigned, count the env using current env
+        if to_env==None:
+            to_env=self.current_env
+        elif to_env not in range(self.n_envs):
+            raise Exception("Cannot cache to env{}, index out of range".format(to_env))
+
+        for key in self.observations.keys():
+            # Reshape needed when using multiple envs with discrete observations
+            # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                obs[key] = obs[key].reshape((1,) + self.obs_shape[key])
+
+        for key in self.next_observations.keys():
+            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+                next_obs[key] = next_obs[key].reshape((1,) + self.obs_shape[key])
+        
+        # Same reshape, for actions
+        if isinstance(self.action_space, spaces.Discrete):
+            action = action.reshape((1, self.action_dim))
+
+        env=to_env
+        #if this is a pause state, skip it
+        if "pause" in infos:
+            return
+
+        #do original things
+        self.observations[key][self.poses[env]] = np.array(obs[key])
+        self.next_observations[key][self.poses[env]] = np.array(next_obs[key]).copy()
+        self.actions[self.poses[env]] = np.array(action).copy()
+        self.rewards[self.poses[env]] = np.array(reward).copy()
+        self.dones[self.poses[env]] = np.array(done).copy()
+        self.infos[self.poses[env]][env]=infos.copy()
+
+        if self.handle_timeout_termination:
+            self.timeouts[self.poses[env]] = np.array([info.get("TimeLimit.truncated", False) for info in infos])
+
+        self.poses[env] += 1
+        self.total_rewards[env]+=reward
+
+        if self.poses[env] == self.cache_size:
+            raise Exception("Epsiode in env{} exceeds the cache size {}".format(env,self.cache_size))
+        #check done
+        if done:
+            if "terminal_observation" in infos:
+                self.done_flags[env]=True
+                #update the current_env
+                self.current_env=(self.current_env+1)%self.n_envs
+            else:
+                raise Exception("Env{} done but has no 'terminal_observation' feild in its info".format(env))
+
+    def all_done(self):
+        """check if every environment has finished its episode"""
+        return self.done_flags.all()
+
+    def get_best_trajactory_index(self):
+        if self.all_done():
+            return self.total_rewards.argmax()
+        else:
+            raise Exception("Cannot get best trajactory index before all env done")
+
+    def cycle_concat(len,start,end,source:np.ndarray,dest:np.ndarray):
+        if np.shape(source[0])==np.shape(dest[0]):
+            if start+len<=end:
+                dest[start:start+len]=source[:len]
+                return start+len
+            else:
+                len1=end-start
+                len2=start+len-end
+                dest[start:end]=source[:len1]
+                dest[:len2]=source[len1:len]
+                return len2
+        else:
+            raise Exception("Inconsist shape")
+
+    def add_cache_to_buf(self,buf:DictReplayBuffer):
+        idx=self.get_best_trajactory_index()
+        trajectory_len=self.poses[idx,:]
+        buf_pos=buf.pos
+        buf_size=buf_size
+
+        for key in self.observations.keys():
+            self.cycle_concat(trajectory_len,buf_pos,buf_size,self.observations[key][idx,:],buf.observations[key])
+        for key in self.next_observations.keys():
+            self.cycle_concat(trajectory_len,buf_pos,buf_size,self.next_observations[key][idx,:],buf.next_observations[key])
+        self.cycle_concat(trajectory_len,buf_pos,buf_size,self.actions[key][idx,:],buf.actions[key])
+        self.cycle_concat(trajectory_len,buf_pos,buf_size,self.rewards[key][idx,:],buf.rewards[key])
+        self.cycle_concat(trajectory_len,buf_pos,buf_size,self.dones[key][idx,:],buf.dones[key])
+        if self.handle_timeout_termination:
+            self.cycle_concat(trajectory_len,buf_pos,buf_size,self.timeouts[key][idx,:],buf.timeouts[key])
+
+        if buf.pos+trajectory_len<=buf.buffer_size:
+            end_pos=self.pos+trajectory_len
+        else:
+            end_pos=buf.pos+trajectory_len-buf.buffer_size
+            buf.full=True
+        buf.pos=end_pos
+        
+        if buf.pos==buf.buffer_size:
+            buf.full=True
+            buf.pos=0
+
+        print("cache trajectory_len:{}, from env{}".format(trajectory_len,idx))
+
+
+class SelectiveReplayBuffer(DictReplayBuffer):
+    def __init__(self, buffer_size: int, observation_space: spaces.Space, action_space: spaces.Space, device: Union[th.device, str] = "cpu", n_envs: int = 1, optimize_memory_usage: bool = False, handle_timeout_termination: bool = True):
+        #always use one env in Buffer
+        super().__init__(buffer_size, observation_space, action_space, device, n_envs, optimize_memory_usage, handle_timeout_termination)
+        
+        self.cache=DictTransitionCache(200, observation_space, action_space, 2, handle_timeout_termination)
+
+    def sample(self, batch_size: int, env: Optional[VecNormalize] = None) -> DictReplayBufferSamples:
+        upper_bound = self.buffer_size if self.full else self.pos
+        samples = self.observations["prior"].ravel()[:upper_bound]
+        probabilities = samples / samples.sum()
+        batch_inds = np.random.choice(range(len(samples)), batch_size, p=probabilities)
+        return self._get_samples(batch_inds, env=env)
+
+    def add(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]]) -> None:
+        self.cache.cacheSingle(obs, next_obs, action, reward, done, infos)
+        if self.cache.all_done():
+            self.cache.add_cache_to_buf(self)
