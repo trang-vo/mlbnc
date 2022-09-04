@@ -12,6 +12,8 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.buffers import DictReplayBuffer
 import torch
 
+from .selectiveDQN import selectiveDQN
+
 from .feature_extractor_name import FEATURE_EXTRACTOR_NAME
 from .feature_extractors import FeatureExtractor
 from .buffers import PriorDictReplayBuffer
@@ -218,7 +220,7 @@ class DQNAgent:
         elif isinstance(env, PriorCutEnv):
             replay_buffer_class = PriorDictReplayBuffer
 
-        self.model = DQN(
+        self.model = selectiveDQN(
             "MultiInputPolicy", env, replay_buffer_class=replay_buffer_class, policy_kwargs=policy_kwargs,
             **model_config
         )
