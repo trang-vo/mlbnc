@@ -1,0 +1,4 @@
+time/fps,time/time_elapsed,rollout/ep_len_mean,time/episodes,rollout/ep_rew_mean,time/total_timesteps,rollout/exploration_rate,train/loss,train/n_updates,train/learning_rate
+1,21,22.0,1,-0.78,22,0.9997910000000003,,,
+0,78,20.5,2,-0.7050000000000001,41,0.9996105000000004,0.0014311457052826881,1,0.0001
+0,101,20.333333333333332,3,-0.6900000000000001,61,0.9994205000000003,0.001354510081000626,2,0.0001

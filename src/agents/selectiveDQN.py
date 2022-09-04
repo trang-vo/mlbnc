@@ -15,7 +15,7 @@ from .cache import DictTransitionCache
 class selectiveDQN(DQN):
     def collect_rollouts(
         self,
-        env: VecEnv,#modified
+        env: VecEnv,
         callback: BaseCallback,
         train_freq: TrainFreq,
         replay_buffer: ReplayBuffer,

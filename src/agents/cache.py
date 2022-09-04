@@ -46,19 +46,22 @@ class DictTransitionCache:
         self.infos={i:{j:[] for j in range(self.n_envs)} for i in range(self.cache_size)}
 
     def cacheMulti(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]]) -> None:
-        for key in self.observations.keys():
-            # Reshape needed when using multiple envs with discrete observations
-            # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
-            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
-                obs[key] = obs[key].reshape((self.n_envs,) + self.obs_shape[key])
 
-        for key in self.next_observations.keys():
-            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
-                next_obs[key] = next_obs[key].reshape((self.n_envs,) + self.obs_shape[key])
+        # Should be activated in stable_baselines3 1.6.0
+        #
+        # for key in self.observations.keys():
+        #     # Reshape needed when using multiple envs with discrete observations
+        #     # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
+        #     if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+        #         obs[key] = obs[key].reshape((self.n_envs,) + self.obs_shape[key])
+
+        # for key in self.next_observations.keys():
+        #     if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+        #         next_obs[key] = next_obs[key].reshape((self.n_envs,) + self.obs_shape[key])
         
-        # Same reshape, for actions
-        if isinstance(self.action_space, spaces.Discrete):
-            action = action.reshape((self.n_envs, self.action_dim))
+        # # Same reshape, for actions
+        # if isinstance(self.action_space, spaces.Discrete):
+        #     action = action.reshape((self.n_envs, self.action_dim))
 
         for env in range(self.n_envs):
             #if this is a pause state, skip it
@@ -66,8 +69,10 @@ class DictTransitionCache:
                 continue
 
             #do original things
-            self.observations[key][self.poses[env]] = np.array(obs[key][env])
-            self.next_observations[key][self.poses[env]] = np.array(next_obs[key][env]).copy()
+            for key in self.observations.keys():
+                self.observations[key][self.poses[env]] = np.array(obs[key][env])
+            for key in self.next_observations.keys():
+                self.next_observations[key][self.poses[env]] = np.array(next_obs[key][env]).copy()
             self.actions[self.poses[env]] = np.array(action[env]).copy()
             self.rewards[self.poses[env]] = np.array(reward[env]).copy()
             self.dones[self.poses[env]] = np.array(done[env]).copy()
@@ -95,19 +100,21 @@ class DictTransitionCache:
         elif to_env not in range(self.n_envs):
             raise Exception("Cannot cache to env{}, index out of range".format(to_env))
 
-        for key in self.observations.keys():
-            # Reshape needed when using multiple envs with discrete observations
-            # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
-            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
-                obs[key] = np.array(obs[key]).reshape((1,) + self.obs_shape[key])
+        # Should be activated in stable_baselines3 1.6.0
+        #
+        # for key in self.observations.keys():
+        #     # Reshape needed when using multiple envs with discrete observations
+        #     # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
+        #     if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+        #         obs[key] = np.array(obs[key]).reshape((1,) + self.obs_shape[key])
 
-        for key in self.next_observations.keys():
-            if isinstance(self.observation_space.spaces[key], spaces.Discrete):
-                next_obs[key] = np.array(next_obs[key]).reshape((1,) + self.obs_shape[key])
+        # for key in self.next_observations.keys():
+        #     if isinstance(self.observation_space.spaces[key], spaces.Discrete):
+        #         next_obs[key] = np.array(next_obs[key]).reshape((1,) + self.obs_shape[key])
         
-        # Same reshape, for actions
-        if isinstance(self.action_space, spaces.Discrete):
-            action = action.reshape((1, self.action_dim))
+        # # Same reshape, for actions
+        # if isinstance(self.action_space, spaces.Discrete):
+        #     action = action.reshape((1, self.action_dim))
 
         env=to_env
         #if this is a pause state, skip it
@@ -221,21 +228,3 @@ class DictTransitionCache:
             raise Exception("Use index out of range")
         return {key:self.observations[key][i][idx] for key in self.observations.keys()},{key:self.next_observations[key][i][idx] for key in self.next_observations.keys()},self.actions[i][idx],self.rewards[i][idx],self.dones[i][idx],self.infos[i][idx]
 
-class SelectiveReplayBuffer(DictReplayBuffer):
-    def __init__(self, buffer_size: int, observation_space: spaces.Space, action_space: spaces.Space, device: Union[th.device, str] = "cpu", n_envs: int = 1, optimize_memory_usage: bool = False, handle_timeout_termination: bool = True):
-        #always use one env in Buffer
-        super().__init__(buffer_size, observation_space, action_space, device, n_envs, optimize_memory_usage, handle_timeout_termination)
-        
-        self.cache=DictTransitionCache(200, observation_space, action_space, 2, handle_timeout_termination)
-
-    def sample(self, batch_size: int, env: Optional[VecNormalize] = None) -> DictReplayBufferSamples:
-        upper_bound = self.buffer_size if self.full else self.pos
-        samples = self.observations["prior"].ravel()[:upper_bound]
-        probabilities = samples / samples.sum()
-        batch_inds = np.random.choice(range(len(samples)), batch_size, p=probabilities)
-        return self._get_samples(batch_inds, env=env)
-
-    def add(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]]) -> None:
-        self.cache.cacheSingle(obs, next_obs, action, reward, done, infos)
-        if self.cache.all_done():
-            self.cache.add_cache_to_buf(self)
