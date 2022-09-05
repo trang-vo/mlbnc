@@ -188,7 +188,6 @@ class BaseCutEnv(gym.Env):
         self.solver_proc.start()
 
         obs, _, _, _ = self.state_queue.get()
-
         return obs
 
     def step(self, action: int):

@@ -1,3 +1,4 @@
+import time
 from stable_baselines3 import DQN
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
@@ -7,7 +8,7 @@ from stable_baselines3.common.buffers import ReplayBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise
 from stable_baselines3.common.type_aliases import RolloutReturn, TrainFreq
-from stable_baselines3.common.utils import should_collect_more_steps
+from stable_baselines3.common.utils import safe_mean,should_collect_more_steps
 from stable_baselines3.common.vec_env import VecEnv
 
 from .cache import DictTransitionCache
@@ -51,6 +52,8 @@ class selectiveDQN(DQN):
         #current number of episodes in a rollout, used to end the rollout
         num_collected_episodes = 0
         #customed helper parameters
+        if not hasattr(self,'corrected_start_time'):
+            self.corrected_start_time=self.start_time
         self.cache=DictTransitionCache(200,env.observation_space,env.action_space,2,self.replay_buffer.handle_timeout_termination)
 
         assert isinstance(env, VecEnv), "You must pass a VecEnv"
@@ -81,8 +84,6 @@ class selectiveDQN(DQN):
                 # Rescale and perform action
                 new_obs, reward, done, infos = env.step(action)
 
-                #if is training
-                
                 #total time steps (counting both trajectory, good and bad)
                 temp_num_collected_steps+=1
                 #add to cache insteaf of replaybuffer
@@ -92,20 +93,26 @@ class selectiveDQN(DQN):
                    
                     selected_trajectory_idx=self.cache.get_best_trajactory_index()
                     
-                    #update original parameters
+                    # --update original parameters--
                     episode_timesteps=self.cache.poses[selected_trajectory_idx]#reward in this episode
                     episode_reward=self.cache.total_rewards[selected_trajectory_idx]#steps in this episode
                     
-                    #do original things
+                    #do original things at each step for the better trejactory
                     for step in range(episode_timesteps):
+                        # --callbacks here--
+                        # Give access to local variables
+                        callback.update_locals(locals())
+                        # Only stop training if return value is False, not when it is None.
+                        if callback.on_step() is False:
+                            return RolloutReturn(0.0, num_collected_steps, num_collected_episodes, continue_training=False)
+                        # --do original things--
                         #total steps from begining of this train, used to end the training, controll explore rate and determine when to update target function
                         self.num_timesteps += 1
                         num_collected_steps += 1
                         self._update_info_buffer(self.cache.infos[step][selected_trajectory_idx], self.cache.dones[step][selected_trajectory_idx])#update information of self.ep_info_buffer and self.ep_success_buffer used in _dump_log()
                         self.cache.add_one_to_buf(step,replay_buffer)#add one transition into replaybuffer
                         self._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)#update the remaining steps/episode of this training, also used to controll the explore rate
-                        self._on_step()#update 
-                    #reset the cache
+                        self._on_step()#update explore rate and target network
                     
                 if not should_collect_more_steps(train_freq, num_collected_steps, num_collected_episodes):
                     break
@@ -122,15 +129,38 @@ class selectiveDQN(DQN):
                 # Log training infos
                 if log_interval is not None and self._episode_num % log_interval == 0:
                     self._dump_logs()#TODO:modify self.start_time
-
+            #reset the cache
             self.cache.clear()
-                
 
         mean_reward = np.mean(episode_rewards) if num_collected_episodes > 0 else 0.0
 
         callback.on_rollout_end()
 
         return RolloutReturn(mean_reward, num_collected_steps, num_collected_episodes, continue_training)
+
+    def _dump_logs(self) -> None:
+        """
+        Write log.
+        """
+        if not self.env_training:
+            super()._dump_logs()
+        else:
+            time_elapsed = time.time() - self.corrected_start_time
+            fps = int(self.num_timesteps / (time_elapsed + 1e-8))
+            self.logger.record("time/episodes", self._episode_num, exclude="tensorboard")
+            if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
+                self.logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+                self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+            self.logger.record("time/fps", fps)
+            self.logger.record("time/time_elapsed", int(time_elapsed), exclude="tensorboard")
+            self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+            if self.use_sde:
+                self.logger.record("train/std", (self.actor.get_std()).mean().item())
+
+            if len(self.ep_success_buffer) > 0:
+                self.logger.record("rollout/success_rate", safe_mean(self.ep_success_buffer))
+            # Pass the number of timesteps for tensorboard
+            self.logger.dump(step=self.num_timesteps)
 
     def _store_transition_into_cache(
         self,
@@ -171,3 +201,15 @@ class selectiveDQN(DQN):
         # Save the unnormalized observation
         if self._vec_normalize_env is not None:
             self._last_original_obs = new_obs_
+
+# safe parameters
+# #almost correct
+# self.num_episodes
+# self.num_timesteps
+# num_collected_steps
+# num_collected_episodes
+# #used to update at each step, now update once at the end of both epsiode
+# episode_timesteps
+# episode_reward
+# #the counter that counts all trejactories
+# temp_num_collected_steps

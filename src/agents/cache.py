@@ -40,8 +40,8 @@ class DictTransitionCache:
         self.current_env=0#start with env0
 
     def clear(self):
-        self.poses=np.zeros((self.n_envs,),dtype=int)
-        self.total_rewards=np.zeros((self.n_envs,),dtype=float)
+        self.poses=np.zeros((self.n_envs,),dtype=np.int8)
+        self.total_rewards=np.zeros((self.n_envs,),dtype=np.float32)
         self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
         self.infos={i:{j:[] for j in range(self.n_envs)} for i in range(self.cache_size)}
 
