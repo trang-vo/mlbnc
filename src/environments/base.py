@@ -102,6 +102,8 @@ class BaseCutEnv(gym.Env):
 
         self.user_callback_class = CALLBACK_NAME[config["user_callback"]]
 
+        self.cached_instance_path=None
+
     def cplex_solve(self):
         self.solver.solve()
         if self.mode == "eval":
@@ -121,23 +123,31 @@ class BaseCutEnv(gym.Env):
         self.action_queue = Queue()
         self.state_queue = Queue()
         self.done = False
+        
+        if self.cached_instance_path is None:
+            while True:
+                if instance_path is None:
+                    if self.mode == "train":
+                        i = np.random.randint(0, len(self.train_instances))
+                        instance_path = os.path.join(
+                            self.train_folder, self.train_instances[i]
+                        )
+                    elif self.mode == "eval":
+                        i = np.random.randint(0, len(self.eval_instances))
+                        instance_path = os.path.join(
+                            self.eval_folder, self.eval_instances[i]
+                        )
 
-        while True:
-            if instance_path is None:
-                if self.mode == "train":
-                    i = np.random.randint(0, len(self.train_instances))
-                    instance_path = os.path.join(
-                        self.train_folder, self.train_instances[i]
-                    )
-                elif self.mode == "eval":
-                    i = np.random.randint(0, len(self.eval_instances))
-                    instance_path = os.path.join(
-                        self.eval_folder, self.eval_instances[i]
-                    )
-
-            self.problem = PROBLEM_NAME[self.problem_type](instance_path)
-            if len(self.problem.graph.nodes) == self.init_config.instance_size:
-                break
+                self.problem = PROBLEM_NAME[self.problem_type](instance_path)
+                if len(self.problem.graph.nodes) == self.init_config.instance_size:
+                    break
+            self.cached_instance_path=instance_path
+        else:
+            self.problem = PROBLEM_NAME[self.problem_type](self.cached_instance_path)
+            if len(self.problem.graph.nodes) != self.init_config.instance_size:
+                raise Exception("Using incorrect city size instance"
+            )
+            self.cached_instance_path=None
 
         print("Processing instance", instance_path)
 
