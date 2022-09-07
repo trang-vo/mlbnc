@@ -41,3 +41,17 @@
 24053	train_subtour.sh
 24094	train_subtour.sh
 24134	train_subtour.sh
+27061	train_subtour.sh
+27070	train_subtour.sh
+19786	train_subtour.sh
+19811	train_subtour.sh
+19867	train_subtour.sh
+19895	train_subtour.sh
+20646	train_subtour.sh
+1112	train_subtour.sh
+1182	train_subtour.sh
+1762	train_subtour.sh
+1790	train_subtour.sh
+3118	train_subtour.sh
+26657	train_subtour.sh
+6887	train_subtour.sh

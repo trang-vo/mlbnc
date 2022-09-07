@@ -145,13 +145,13 @@ class selectiveDQN(DQN):
         if not self.env_training:
             super()._dump_logs()
         else:
-            time_elapsed = time.time() - self.corrected_start_time
-            fps = int(self.num_timesteps / (time_elapsed + 1e-8))
+            time_elapsed = time.time() - self.start_time
+            # fps = int(self.num_timesteps / (time_elapsed + 1e-8))
             self.logger.record("time/episodes", self._episode_num, exclude="tensorboard")
             if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
                 self.logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
                 self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
-            self.logger.record("time/fps", fps)
+            # self.logger.record("time/fps", fps)
             self.logger.record("time/time_elapsed", int(time_elapsed), exclude="tensorboard")
             self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
             if self.use_sde:
@@ -161,6 +161,10 @@ class selectiveDQN(DQN):
                 self.logger.record("rollout/success_rate", safe_mean(self.ep_success_buffer))
             # Pass the number of timesteps for tensorboard
             self.logger.dump(step=self.num_timesteps)
+            
+            #extra data for selectiveDQN
+            self.logger.record("episode/reward_diff",np.abs(self.cache.total_rewards[0]-self.cache.total_rewards[1]),exclude="tensorboard")
+            self.logger.record("episode/ep_len_diff",np.abs(self.cache.poses[0]-self.cache.poses[1]),exclude="tensorboard")
 
     def _store_transition_into_cache(
         self,

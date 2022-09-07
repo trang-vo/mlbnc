@@ -1,4 +1,4 @@
 #!/bin/bash
 
 echo -e "$$\t${BASH_SOURCE[0]}" >> pids.txt
-python train_agent.py tsp subtour PriorCutEnv
+python train_agent.py tsp subtour SelectiveEnv

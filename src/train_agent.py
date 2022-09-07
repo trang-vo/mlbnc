@@ -6,12 +6,14 @@ from typing import *
 from lescode.config import load_config
 
 from environments.base import BaseCutEnv, PriorCutEnv
+from environments.selective_env import SelectiveEnv
 from agents.base import DQNAgent
 
 
 ENV_NAME = {
     "BaseCutEnv": BaseCutEnv,
     "PriorCutEnv": PriorCutEnv,
+    "SelectiveEnv": SelectiveEnv,
 }
 
 
@@ -37,7 +39,8 @@ if __name__ == "__main__":
 
     env = ENV_NAME[env_name](ENV_CONFIG, problem_type=problem_type, cut_type=cut_type, mode="train")
     result_path = os.path.join(logdir, folder, "results_eval.csv")
-    eval_env = ENV_NAME[env_name](ENV_CONFIG, problem_type=problem_type, cut_type=cut_type, mode="eval",
+    #still use PriorCutEnv to Eval
+    eval_env = ENV_NAME["PriorCutEnv"](ENV_CONFIG, problem_type=problem_type, cut_type=cut_type, mode="eval",
                                   result_path=result_path)
 
     agent = DQNAgent()

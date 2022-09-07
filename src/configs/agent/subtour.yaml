@@ -31,6 +31,6 @@ dqn:
 learn:
   eval_freq: 20
   n_eval_episodes: 1
-  total_timesteps: 1000000
+  total_timesteps: 10000
   log_interval: 1
   
