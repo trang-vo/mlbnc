@@ -145,7 +145,8 @@ class BaseCutEnv(gym.Env):
             self.cached_instance_path=instance_path
             self.use_cached_instance=True
         else:
-            self.problem = PROBLEM_NAME[self.problem_type](self.cached_instance_path)
+            instance_path=self.cached_instance_path
+            self.problem = PROBLEM_NAME[self.problem_type](instance_path)
             if len(self.problem.graph.nodes) != self.init_config.instance_size:
                 raise Exception("Using incorrect city size instance"
             )
