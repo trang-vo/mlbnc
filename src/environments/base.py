@@ -16,7 +16,6 @@ from solvers.base import CALLBACK_NAME
 from problems.problem_name import PROBLEM_NAME
 from config import EnvConfig
 
-
 class BaseCutEnv(gym.Env):
     def __init__(
             self,
@@ -102,9 +101,6 @@ class BaseCutEnv(gym.Env):
 
         self.user_callback_class = CALLBACK_NAME[config["user_callback"]]
 
-        self.cached_instance_path=None
-        self.use_cached_instance=False
-
     def cplex_solve(self):
         self.solver.solve()
         if self.mode == "eval":
@@ -124,33 +120,23 @@ class BaseCutEnv(gym.Env):
         self.action_queue = Queue()
         self.state_queue = Queue()
         self.done = False
-        
-        if not self.use_cached_instance:
-            while True:
-                if instance_path is None:
-                    if self.mode == "train":
-                        i = np.random.randint(0, len(self.train_instances))
-                        instance_path = os.path.join(
-                            self.train_folder, self.train_instances[i]
-                        )
-                    elif self.mode == "eval":
-                        i = np.random.randint(0, len(self.eval_instances))
-                        instance_path = os.path.join(
-                            self.eval_folder, self.eval_instances[i]
-                        )
 
-                self.problem = PROBLEM_NAME[self.problem_type](instance_path)
-                if len(self.problem.graph.nodes) == self.init_config.instance_size:
-                    break
-            self.cached_instance_path=instance_path
-            self.use_cached_instance=True
-        else:
-            instance_path=self.cached_instance_path
+        while True:
+            if instance_path is None:
+                if self.mode == "train":
+                    i = np.random.randint(0, len(self.train_instances))
+                    instance_path = os.path.join(
+                        self.train_folder, self.train_instances[i]
+                    )
+                elif self.mode == "eval":
+                    i = np.random.randint(0, len(self.eval_instances))
+                    instance_path = os.path.join(
+                        self.eval_folder, self.eval_instances[i]
+                    )
+
             self.problem = PROBLEM_NAME[self.problem_type](instance_path)
-            if len(self.problem.graph.nodes) != self.init_config.instance_size:
-                raise Exception("Using incorrect city size instance"
-            )
-            self.use_cached_instance=False
+            if len(self.problem.graph.nodes) == self.init_config.instance_size:
+                break
 
         print("Processing instance", instance_path)
 
@@ -199,19 +185,9 @@ class BaseCutEnv(gym.Env):
         self.solver_proc = Process(target=self.cplex_solve, args=())
         self.solver_proc.daemon = True
         self.solver_proc.start()
-        try:
-            obs, temp_reward, temp_done, temp_info = self.state_queue.get(timeout=5)
-        except queue.Empty:
-            if self.use_cached_instance:
-                self.use_cached_instance=False
-                print('solved_in_reset')
-                return self.reset(instance_path,steps,**kwargs)
-            else:
-                raise Exception("Problem solved while reset, and this is the secondd trial")
-        if obs is None:
-            print('obs_is_None')
-            self.use_cached_instance=False
-            return self.reset(instance_path,steps,**kwargs)
+
+        obs, _, _, _ = self.state_queue.get()
+
         return obs
 
     def step(self, action: int):

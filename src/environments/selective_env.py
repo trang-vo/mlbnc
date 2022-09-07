@@ -111,9 +111,12 @@ class SelectiveEnv(PriorCutEnv):
                 print('solved_in_reset')
                 return self.reset(instance_path,steps,**kwargs)
             else:
-                raise Exception("Problem solved while reset, and this is the secondd trial")
+                raise Exception("Problem solved while reset, and this is the second trajectory")
         if obs is None:
-            print('obs_is_None')
-            self.use_cached_instance=False
-            return self.reset(instance_path,steps,**kwargs)
+            if self.use_cached_instance:
+                self.use_cached_instance=False
+                print('obs_is_none')
+                return self.reset(instance_path,steps,**kwargs)
+            else:
+                raise Exception("Problem solved while reset, and this is the second trajectory")
         return obs
