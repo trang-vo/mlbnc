@@ -34,16 +34,33 @@ class DictTransitionCache:
         self.infos={i:{j:[] for j in range(self.n_envs)} for i in range(self.cache_size)}
         self.timeouts = np.zeros((self.cache_size, self.n_envs), dtype=np.float32)
         #helper data
-        self.poses=np.zeros((self.n_envs,),dtype=np.int8)
+        self.poses=np.zeros((self.n_envs,),dtype=np.int16)
         self.total_rewards=np.zeros((self.n_envs,),dtype=np.float32)
         self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
         self.current_env=0#start with env0
 
     def clear(self):
-        self.poses=np.zeros((self.n_envs,),dtype=np.int8)
+        self.poses=np.zeros((self.n_envs,),dtype=np.int16)
         self.total_rewards=np.zeros((self.n_envs,),dtype=np.float32)
         self.done_flags=np.zeros((self.n_envs,),dtype=np.bool8)
         self.infos={i:{j:[] for j in range(self.n_envs)} for i in range(self.cache_size)}
+
+    def check(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]])->None:
+        print("obs:\n")
+        print(obs)
+        print("next_obs:\n")
+        print(next_obs)
+        print("action:\n")
+        print(action)
+        print("reward:\n")
+        print(reward)
+        print("done:\n")
+        print(done)
+        print("infos:\n")
+        print(infos)
+        print("-----------------------------------------------------------------------------------------------------------")
+        print("env0_pose: {}\tenv1_pose: {}".format(self.pose[0],self.pose[1]))
+        print("rewards:\t",self.rewards)
 
     def cacheMulti(self, obs: Dict[str, np.ndarray], next_obs: Dict[str, np.ndarray], action: np.ndarray, reward: np.ndarray, done: np.ndarray, infos: List[Dict[str, Any]]) -> None:
 
@@ -100,6 +117,10 @@ class DictTransitionCache:
         elif to_env not in range(self.n_envs):
             raise Exception("Cannot cache to env{}, index out of range".format(to_env))
 
+        if obs is None or next_obs is None:
+            print("obs or next_obs is NONE")
+            self.check(obs,next_obs,action,reward,done,infos)
+            
         # Should be activated in stable_baselines3 1.6.0
         #
         # for key in self.observations.keys():
@@ -138,7 +159,7 @@ class DictTransitionCache:
         self.total_rewards[env]+=reward
 
         if self.poses[env] == self.cache_size:
-            raise Exception("Epsiode in env{} exceeds the cache size {}".format(env,self.cache_size))
+            raise Exception("Trajectory in env{} exceeds the cache size {}".format(env,self.cache_size))
         #check done
         if done:
             if not "terminal_observation" in infos:

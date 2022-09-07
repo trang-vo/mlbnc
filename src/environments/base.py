@@ -103,6 +103,7 @@ class BaseCutEnv(gym.Env):
         self.user_callback_class = CALLBACK_NAME[config["user_callback"]]
 
         self.cached_instance_path=None
+        self.use_cached_instance=False
 
     def cplex_solve(self):
         self.solver.solve()
@@ -124,7 +125,7 @@ class BaseCutEnv(gym.Env):
         self.state_queue = Queue()
         self.done = False
         
-        if self.cached_instance_path is None:
+        if not self.use_cached_instance:
             while True:
                 if instance_path is None:
                     if self.mode == "train":
@@ -142,12 +143,13 @@ class BaseCutEnv(gym.Env):
                 if len(self.problem.graph.nodes) == self.init_config.instance_size:
                     break
             self.cached_instance_path=instance_path
+            self.use_cached_instance=True
         else:
             self.problem = PROBLEM_NAME[self.problem_type](self.cached_instance_path)
             if len(self.problem.graph.nodes) != self.init_config.instance_size:
                 raise Exception("Using incorrect city size instance"
             )
-            self.cached_instance_path=None
+            self.use_cached_instance=False
 
         print("Processing instance", instance_path)
 
@@ -196,8 +198,19 @@ class BaseCutEnv(gym.Env):
         self.solver_proc = Process(target=self.cplex_solve, args=())
         self.solver_proc.daemon = True
         self.solver_proc.start()
-
-        obs, _, _, _ = self.state_queue.get()
+        try:
+            obs, temp_reward, temp_done, temp_info = self.state_queue.get(timeout=5)
+        except queue.Empty:
+            if self.use_cached_instance:
+                self.use_cached_instance=False
+                print('solved_in_reset')
+                return self.reset(instance_path,steps,**kwargs)
+            else:
+                raise Exception("Problem solved while reset, and this is the secondd trial")
+        if obs is None:
+            print('obs_is_None')
+            self.use_cached_instance=False
+            return self.reset(instance_path,steps,**kwargs)
         return obs
 
     def step(self, action: int):
