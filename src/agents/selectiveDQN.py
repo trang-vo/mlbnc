@@ -54,7 +54,7 @@ class selectiveDQN(DQN):
         #customed helper parameters
         if not hasattr(self,'corrected_start_time'):
             self.corrected_start_time=self.start_time
-        self.cache=DictTransitionCache(3000,env.observation_space,env.action_space,2,self.replay_buffer.handle_timeout_termination)
+        self.cache=DictTransitionCache(4000,env.observation_space,env.action_space,2,self.replay_buffer.handle_timeout_termination)
 
         assert isinstance(env, VecEnv), "You must pass a VecEnv"
         assert env.num_envs == 1, "OffPolicyAlgorithm only support single environment"
