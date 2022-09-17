@@ -1,0 +1,33 @@
+/bigdata/users/liyuhao/local/anaconda3/envs/mlbnc3.6cpu/lib/python3.6/site-packages/stable_baselines3/common/evaluation.py:69: UserWarning: Evaluation environment is not wrapped with a ``Monitor`` wrapper. This may result in reporting modified episode lengths and rewards, if other wrappers happen to modify these. Consider wrapping environment first with ``Monitor`` wrapper.
+  UserWarning,
+Traceback (most recent call last):
+  File "/bigdata/users/liyuhao/mlbnc/src/environments/selective_env.py", line 107, in reset
+    obs, temp_reward, temp_done, temp_info = self.state_queue.get(timeout=5)
+  File "/bigdata/users/liyuhao/local/anaconda3/envs/mlbnc3.6cpu/lib/python3.6/multiprocessing/queues.py", line 105, in get
+    raise Empty
+queue.Empty
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/bigdata/users/liyuhao/mlbnc/src/train_agent.py", line 56, in <module>
+    log_path=log_path,
+  File "/bigdata/users/liyuhao/mlbnc/src/agents/base.py", line 251, in train
+    callback=[eval_callback, log_callback, save_buffer_callback],
+  File "/bigdata/users/liyuhao/local/anaconda3/envs/mlbnc3.6cpu/lib/python3.6/site-packages/stable_baselines3/dqn/dqn.py", line 250, in learn
+    reset_num_timesteps=reset_num_timesteps,
+  File "/bigdata/users/liyuhao/local/anaconda3/envs/mlbnc3.6cpu/lib/python3.6/site-packages/stable_baselines3/common/off_policy_algorithm.py", line 359, in learn
+    log_interval=log_interval,
+  File "/bigdata/users/liyuhao/mlbnc/src/agents/selectiveDQN.py", line 33, in collect_rollouts
+    return self.collect_selected_rollouts(env, callback, train_freq, replay_buffer, action_noise, learning_starts, log_interval)
+  File "/bigdata/users/liyuhao/mlbnc/src/agents/selectiveDQN.py", line 85, in collect_selected_rollouts
+    new_obs, reward, done, infos = env.step(action)
+  File "/bigdata/users/liyuhao/local/anaconda3/envs/mlbnc3.6cpu/lib/python3.6/site-packages/stable_baselines3/common/vec_env/base_vec_env.py", line 162, in step
+    return self.step_wait()
+  File "/bigdata/users/liyuhao/local/anaconda3/envs/mlbnc3.6cpu/lib/python3.6/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 49, in step_wait
+    obs = self.envs[env_idx].reset()
+  File "/bigdata/users/liyuhao/local/anaconda3/envs/mlbnc3.6cpu/lib/python3.6/site-packages/stable_baselines3/common/monitor.py", line 79, in reset
+    return self.env.reset(**kwargs)
+  File "/bigdata/users/liyuhao/mlbnc/src/environments/selective_env.py", line 114, in reset
+    raise Exception("Problem solved while reset, and this is the second trajectory")
+Exception: Problem solved while reset, and this is the second trajectory

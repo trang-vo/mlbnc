@@ -22,14 +22,14 @@ dqn:
     - step
   learning_starts: 0.0001
   gamma: 1
-  buffer_size: 1000
+  buffer_size: 2000
   exploration_initial_eps: 1
   exploration_final_eps: 0.05
   gradient_steps: 1
   device: cpu
   tensorboard_log: ../logs/dqn_tensorboard/
 learn:
-  eval_freq: 20
+  eval_freq: 100
   n_eval_episodes: 1
   total_timesteps: 100000
   log_interval: 1

@@ -94,8 +94,8 @@ class selectiveDQN(DQN):
                     selected_trajectory_idx=self.cache.get_best_trajactory_index()
                     
                     # --update original parameters--
-                    episode_timesteps=self.cache.poses[selected_trajectory_idx]#reward in this episode
-                    episode_reward=self.cache.total_rewards[selected_trajectory_idx]#steps in this episode
+                    episode_timesteps=self.cache.poses[selected_trajectory_idx]#steps in this episode
+                    episode_reward=self.cache.total_rewards[selected_trajectory_idx]#reward in this episode
                     
                     #do original things at each step for the better trejactory
                     for step in range(episode_timesteps):
@@ -163,8 +163,11 @@ class selectiveDQN(DQN):
             self.logger.dump(step=self.num_timesteps)
             
             #extra data for selectiveDQN
-            self.logger.record("episode/reward_diff",np.abs(self.cache.total_rewards[0]-self.cache.total_rewards[1]),exclude="tensorboard")
-            self.logger.record("episode/ep_len_diff",np.abs(self.cache.poses[0]-self.cache.poses[1]),exclude="tensorboard")
+            selected_trajectory_idx=self.cache.get_best_trajactory_index()
+            episode_timesteps=self.cache.poses[selected_trajectory_idx]#steps in this episode
+            self.logger.record("episode/action_proportion",(np.sum(self.cache.actions[selected_trajectory_idx])/episode_timesteps))
+            self.logger.record("episode/reward_diff",(self.cache.total_rewards[selected_trajectory_idx]-self.cache.total_rewards[1-selected_trajectory_idx]))
+            self.logger.record("episode/ep_len_diff",(self.cache.poses[selected_trajectory_idx]-self.cache.poses[1-selected_trajectory_idx]))
 
     def _store_transition_into_cache(
         self,

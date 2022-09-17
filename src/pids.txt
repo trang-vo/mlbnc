@@ -56,3 +56,8 @@
 26657	train_subtour.sh
 6887	train_subtour.sh
 24327	train_subtour.sh
+25474	train_subtour.sh
+12337	/bigdata/users/liyuhao/mlbnc/src/train_subtour.sh
+23423t
+44494	/bigdata/users/liyuhao/mlbnc/src/train_subtour.sh
+45081	/bigdata/users/liyuhao/mlbnc/src/train_subtour.sh
