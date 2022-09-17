@@ -2,12 +2,13 @@ from time import time
 from typing import *
 
 import numpy as np
+import json
 from torch.multiprocessing.queue import Queue
 
 from .state_extractor.base import StateExtractor
 from ..cplex_api import cplex
 from .base import BaseUserCallback
-
+#I think Trang implemented a Rewardcalculator for this, I can directly use it
 
 class RewardCalculator:
     def __init__(self, reward_type: str, *args, **kwargs):
@@ -31,6 +32,30 @@ class RewardCalculator:
 
         return reward
 
+class TuneableRewardCalculator(RewardCalculator):
+    def __init__(self, reward_type: str, *args, **kwargs):
+        self.reward_weight=None
+        self.tuneable=True
+        try:
+            self.reward_weight=json.load(reward_type)
+        except ValueError:
+            self.tuneable=False
+        if not self.tuneable:
+            super().__init__(reward_type, *args, **kwargs)
+
+    def get_reward(self, callback) -> float:
+        if not self.tuneable:
+            return super().get_reward(callback)
+        else:
+            time_weight=getattr(self.reward_weight,"time",0)
+            gap_diff_weight=getattr(self.reward_weight,"gap_difference",0)
+            obj_diff_weight=getattr(self.reward_weight,"obj_difference",0)
+            gap = min(callback.prev_gap, callback.get_MIP_relative_gap())
+            #[time , gap_difference , change_in_objective_value]
+            time = -(time() - callback.prev_time)#should be a negative value
+            gap_diff=gap-callback.prev_gap#should be a negative value
+            obj_diff=callback.get_objective_value()#need previous objective value
+
 
 class EnvUserCallback(BaseUserCallback):
     def __call__(self, *args: Any, **kwds: Any) -> Any:
@@ -39,7 +64,7 @@ class EnvUserCallback(BaseUserCallback):
 
         s = time()
         processed_leaves = self.get_num_nodes()
-
+        
         # If the env mode is evaluated and the agent predicts only one action kind for more than K first leaves,
         # then early stop
         if (
