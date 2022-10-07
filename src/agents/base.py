@@ -4,7 +4,8 @@ import os
 import numpy as np
 from stable_baselines3.common.evaluation import evaluate_policy
 
-from stable_baselines3 import DQN
+#from stable_baselines3 import DQN
+from modified_lib.dqn import DQN
 from lescode.namespace import asdict
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.callbacks import BaseCallback
