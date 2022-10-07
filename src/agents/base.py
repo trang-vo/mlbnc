@@ -105,11 +105,12 @@ class EvalCheckpointCallback(EvalCallback):
                 self.logger.record("eval/success_rate", success_rate)
 
             if len(self.model.policy.q_net.q_value_recordings) > 0:
-                eval_q_values = np.mean(np.array(self.model.policy.q_net.q_value_recordings))
-                print(eval_q_values)
-                # if self.verbose > 0:
-                #     print(f"Mean q_value: {100 * success_rate:.2f}%")
-                #self.logger.record("eval/success_rate", success_rate)
+                eval_q_values = [torch.Tensor.numpy(i) for i in self.model.policy.q_net.q_value_recordings]
+                mean_q_values={"action0":np.mean(eval_q_values[0]),"action1":np.mean(eval_q_values[1])}
+                if self.verbose > 0:
+                    print("Mean q_value: {}".format(mean_q_values))
+                self.logger.record("eval/q_value_0", mean_q_values["action0"])
+                self.logger.record("eval/q_value_1", mean_q_values["action1"])
 
             # Dump log so the evaluation results are printed with the correct timestep
             self.logger.record(
