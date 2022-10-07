@@ -34,7 +34,7 @@ class TSPSolver(Solver):
         for cons in degree_constraints:
             self.linear_constraints.add(
                 lin_expr=[
-                    cplex.SparsePair(
+                    cplex.SparsePair(   
                         degree_constraints[cons], [1] * len(degree_constraints[cons])
                     )
                 ],

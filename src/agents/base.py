@@ -106,9 +106,14 @@ class EvalCheckpointCallback(EvalCallback):
 
             if len(self.model.policy.q_net.q_value_recordings) > 0:
                 eval_q_values = [torch.Tensor.numpy(i) for i in self.model.policy.q_net.q_value_recordings]
+                self.model.policy.q_net.q_value_recordings=[]
                 mean_q_values={"action0":np.mean(eval_q_values[0]),"action1":np.mean(eval_q_values[1])}
                 if self.verbose > 0:
                     print("Mean q_value: {}".format(mean_q_values))
+                with open(os.path.join(self.logger.get_dir(),"Detailed_q_value"),mode='a',encoding="utf-8") as q_value_log:
+                    for i in eval_q_values:
+                        q_value_log.write("action0: {}  action1: {}".format(i[0],i[1]))
+                    q_value_log.write("Timestep: {}".format(self.num_timesteps))
                 self.logger.record("eval/q_value_0", mean_q_values["action0"])
                 self.logger.record("eval/q_value_1", mean_q_values["action1"])
 
