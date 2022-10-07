@@ -9,6 +9,28 @@ from ..cplex_api import cplex
 from .base import BaseUserCallback
 
 
+# class RewardCalculator:
+#     def __init__(self, reward_type: str, *args, **kwargs):
+#         self.reward_type = reward_type
+
+#     def get_reward(self, callback) -> float:
+#         reward = 0
+#         if self.reward_type == "time":
+#             if callback.prev_time is not None:
+#                 reward = -(time() - callback.prev_time)
+#             else:
+#                 reward = 0
+#         elif self.reward_type == "reward_shaping":
+#             action_cost = -0.01
+#             reinforce_cuts = 0
+#             if callback.prev_cuts > 0:
+#                 reinforce_cuts = callback.prev_cuts * 0.01
+#             elif callback.prev_cuts == 0:
+#                 reinforce_cuts = -0.1
+#             reward = action_cost + reinforce_cuts
+
+#         return reward
+
 class RewardCalculator:
     def __init__(self, reward_type: str, *args, **kwargs):
         self.reward_type = reward_type
@@ -28,7 +50,14 @@ class RewardCalculator:
             elif callback.prev_cuts == 0:
                 reinforce_cuts = -0.1
             reward = action_cost + reinforce_cuts
-
+        elif self.reward_type == "vectorized":
+            action_cost = -0.01
+            reinforce_cuts = 0
+            if callback.prev_cuts > 0:
+                reinforce_cuts = callback.prev_cuts * 0.01
+            elif callback.prev_cuts == 0:
+                reinforce_cuts = -0.1
+            reward = action_cost + reinforce_cuts
         return reward
 
 
