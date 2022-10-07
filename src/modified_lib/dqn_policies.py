@@ -56,6 +56,7 @@ class QNetwork(BasePolicy):
         q_net = create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)
         self.q_net = nn.Sequential(*q_net)
 
+        self.q_value_recordings=[]
     def forward(self, obs: th.Tensor) -> th.Tensor:
         """
         Predict the q-values.
@@ -67,6 +68,8 @@ class QNetwork(BasePolicy):
 
     def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
         q_values = self.forward(observation)
+        self.prev_q_values=q_values
+        self.q_value_recordings.append(q_values)
         # Greedy action
         action = q_values.argmax(dim=1).reshape(-1)
         return action

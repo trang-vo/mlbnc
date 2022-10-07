@@ -51,7 +51,7 @@ class EvalCheckpointCallback(EvalCallback):
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Reset success rate buffer
             self._is_success_buffer = []
-
+            
             episode_rewards, episode_lengths = evaluate_policy(
                 self.model,
                 self.eval_env,
@@ -103,6 +103,13 @@ class EvalCheckpointCallback(EvalCallback):
                 if self.verbose > 0:
                     print(f"Success rate: {100 * success_rate:.2f}%")
                 self.logger.record("eval/success_rate", success_rate)
+
+            if len(self.model.policy.q_net.q_value_recordings) > 0:
+                eval_q_values = np.mean(np.array(self.model.policy.q_net.q_value_recordings))
+                print(eval_q_values)
+                # if self.verbose > 0:
+                #     print(f"Mean q_value: {100 * success_rate:.2f}%")
+                #self.logger.record("eval/success_rate", success_rate)
 
             # Dump log so the evaluation results are printed with the correct timestep
             self.logger.record(
