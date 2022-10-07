@@ -8,34 +8,11 @@ from .state_extractor.base import StateExtractor
 from ..cplex_api import cplex
 from .base import BaseUserCallback
 
-
-# class RewardCalculator:
-#     def __init__(self, reward_type: str, *args, **kwargs):
-#         self.reward_type = reward_type
-
-#     def get_reward(self, callback) -> float:
-#         reward = 0
-#         if self.reward_type == "time":
-#             if callback.prev_time is not None:
-#                 reward = -(time() - callback.prev_time)
-#             else:
-#                 reward = 0
-#         elif self.reward_type == "reward_shaping":
-#             action_cost = -0.01
-#             reinforce_cuts = 0
-#             if callback.prev_cuts > 0:
-#                 reinforce_cuts = callback.prev_cuts * 0.01
-#             elif callback.prev_cuts == 0:
-#                 reinforce_cuts = -0.1
-#             reward = action_cost + reinforce_cuts
-
-#         return reward
-
 class RewardCalculator:
     def __init__(self, reward_type: str, *args, **kwargs):
         self.reward_type = reward_type
 
-    def get_reward(self, callback) -> float:
+    def get_reward(self, callback):
         reward = 0
         if self.reward_type == "time":
             if callback.prev_time is not None:
@@ -51,13 +28,32 @@ class RewardCalculator:
                 reinforce_cuts = -0.1
             reward = action_cost + reinforce_cuts
         elif self.reward_type == "vectorized":
+            gap = min(callback.prev_gap, callback.get_MIP_relative_gap())
+            time_cost = -(time() - callback.prev_time)#should be negative
+            gap_diff=gap-callback.prev_gap#should be negative
+            obj_diff=callback.prev_obj_value - callback.get_objective_value()#should be negative
             action_cost = -0.01
             reinforce_cuts = 0
             if callback.prev_cuts > 0:
                 reinforce_cuts = callback.prev_cuts * 0.01
             elif callback.prev_cuts == 0:
                 reinforce_cuts = -0.1
-            reward = action_cost + reinforce_cuts
+            reward = [time_cost,gap_diff,obj_diff,action_cost,reinforce_cuts]
+        return reward
+
+    def assign_reward(self,assigned_value):
+        reward = 0
+        if self.reward_type == "time":
+            reward=assigned_value
+        elif self.reward_type == "reward_shaping":
+            reward=assigned_value
+        elif self.reward_type == "vectorized":
+            time_cost = 1e6
+            gap_diff=assigned_value
+            obj_diff=assigned_value
+            action_cost = assigned_value
+            reinforce_cuts = assigned_value
+            reward = [time_cost,gap_diff,obj_diff,action_cost,reinforce_cuts]
         return reward
 
 
@@ -76,7 +72,7 @@ class EnvUserCallback(BaseUserCallback):
             and self.actions[1] * self.actions[0] == 0
             and processed_leaves > self.config["limited_one_action"]
         ):
-            self.state_queue.put((None, -1e6, True, {}))
+            self.state_queue.put((None, self.reward_calculator.assign_reward(-1e6), True, {}))
             self.abort()
 
         # Define the initial state for a episode, i.e., the initial state = the processed (add all possible cuts +
@@ -93,6 +89,7 @@ class EnvUserCallback(BaseUserCallback):
             self.start = time()
             self.prev_cuts = len(cuts)
             self.prev_gap = min(self.prev_gap, self.get_MIP_relative_gap())
+            self.prev_obj_value=self.get_objective_value()
             self.prev_time = time()
             self.total_time += s - time()
             self.total_cuts += len(cuts)
@@ -107,12 +104,13 @@ class EnvUserCallback(BaseUserCallback):
 
         # Define the terminal state for an episode, i.e., the terminal state = the leaf which has gap less than 1%
         gap = min(self.prev_gap, self.get_MIP_relative_gap())
+        obj_value=self.get_objective_value()
         if gap < self.config["terminal_gap"]:
             info = {
                 "terminal_observation": self.last_state,
                 "total_time": self.total_time,
             }
-            self.state_queue.put((self.last_state, 0, True, info))
+            self.state_queue.put((self.last_state, self.reward_calculator.assign_reward(0), True, info))
             self.abort()
             return
 
@@ -128,7 +126,7 @@ class EnvUserCallback(BaseUserCallback):
                 "total_time": self.total_time,
             }
             reward = self.config["reward_time_limit"]
-            self.state_queue.put((state, reward, True, info))
+            self.state_queue.put((state, self.reward_calculator.assign_reward(reward), True, info))
             self.abort()
             return
 
@@ -170,6 +168,7 @@ class EnvUserCallback(BaseUserCallback):
             print("Time to solver separation problem", time() - s)
         self.prev_cuts = ncuts
         self.prev_gap = gap
+        self.prev_obj_value=obj_value
 
     def set_attribute(self, separator, *args, **kwargs):
         super().set_attribute(separator, *args, **kwargs)
