@@ -106,14 +106,16 @@ class EvalCheckpointCallback(EvalCallback):
 
             if len(self.model.policy.q_net.q_value_recordings) > 0:
                 eval_q_values = [torch.Tensor.numpy(i).reshape(-1) for i in self.model.policy.q_net.q_value_recordings]
+                # print("episode_lengths: {}\teval_q_values_length: {}".format(episode_lengths[0],len(eval_q_values)))
+                eval_q_values = eval_q_values[-(episode_lengths[0]):]
                 self.model.policy.q_net.q_value_recordings=[]
                 mean_q_values={"action0":np.mean(eval_q_values[0]),"action1":np.mean(eval_q_values[1])}
                 if self.verbose > 0:
                     print("Mean q_value: {}".format(mean_q_values))
-                with open(os.path.join(self.logger.get_dir(),"Detailed_q_value"),mode='a',encoding="utf-8") as q_value_log:
+                with open(os.path.join(self.logger.get_dir(),"Detailed_q_value.csv"),mode='a',encoding="utf-8") as q_value_log:
+                    # q_value_log.write("Evaluated at Timestep: {}\t with episode_length: {}\n".format(self.num_timesteps,episode_lengths[0]))
                     for i in eval_q_values:
-                        q_value_log.write("action0: {}  action1: {}\n".format(i[0],i[1]))
-                    q_value_log.write("Timestep: {}\n".format(self.num_timesteps))
+                        q_value_log.write("{},{},{},{}\n".format(self.num_timesteps,episode_lengths[0],i[0],i[1]))
                 self.logger.record("eval/q_value_0", mean_q_values["action0"])
                 self.logger.record("eval/q_value_1", mean_q_values["action1"])
 
