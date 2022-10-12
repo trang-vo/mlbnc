@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 import sys
 from typing import *
 
@@ -28,6 +29,11 @@ if __name__ == "__main__":
     AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
     print(ENV_CONFIG)
     temp=asdict(ENV_CONFIG)
+    cities_num=int(re.search(r'[0-9]{3}',args[4]).group())
+    temp["instance_size"]=cities_num
+    temp["ori_nEdges"]=cities_num*int(temp["k"])*2
+    temp["sup_nNodes"]=cities_num
+    temp["sup_nEdges"]=cities_num*3
     temp["data_folder"]=args[4]
     ENV_CONFIG=Config()
     ENV_CONFIG=temp
