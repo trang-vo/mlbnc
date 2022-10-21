@@ -12,7 +12,7 @@ from ..cplex_api import cplex, LazyConstraintCallback, UserCutCallback
 class BaseLazyCallback(LazyConstraintCallback):
     def __call__(self):
         solution = np.asarray(self.get_values())
-
+        print(solution)
         support_graph = self.separator.create_support_graph(solution)
         constraints = self.separator.get_lazy_constraints(support_graph)
         for vars, coefs, sense, rhs in constraints:
