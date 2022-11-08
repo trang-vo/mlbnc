@@ -15,6 +15,7 @@ from stable_baselines3.common.torch_layers import (
 from stable_baselines3.common.type_aliases import Schedule
 
 
+
 class QNetwork(BasePolicy):
     """
     Action-Value (Q-Value) network for DQN
@@ -55,8 +56,10 @@ class QNetwork(BasePolicy):
         action_dim = self.action_space.n  # number of actions
         q_net = create_mlp(self.features_dim, action_dim, self.net_arch, self.activation_fn)
         self.q_net = nn.Sequential(*q_net)
-
+        #Recordings
         self.q_value_recordings=[]
+        self.statistic_recordings=[]
+        
     def forward(self, obs: th.Tensor) -> th.Tensor:
         """
         Predict the q-values.
@@ -64,7 +67,11 @@ class QNetwork(BasePolicy):
         :param obs: Observation
         :return: The estimated Q-Value for each action.
         """
-        return self.q_net(self.extract_features(obs))
+        obs_features=self.extract_features(obs)
+        #Record statistic
+        if obs["statistic"].size()==th.Size([1,12]):
+            self.statistic_recordings.append(obs["statistic"])
+        return self.q_net(obs_features)
 
     def _predict(self, observation: th.Tensor, deterministic: bool = True) -> th.Tensor:
         q_values = self.forward(observation)

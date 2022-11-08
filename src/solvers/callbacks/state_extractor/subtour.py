@@ -269,13 +269,12 @@ class SubtourStateExtractor(StateExtractor):
         total_leaves: int = processed_leaves + remain_leaves
         gap = callback.get_MIP_relative_gap()
         gap = gap if gap < 1 else 1
-
+        #statistic calcualtor
         statistic = [
             callback.get_current_node_depth() / self.init_config.instance_size,
             callback.has_incumbent(),
             gap,
-            sum(np.where(abs(solution - 1) < TOLERANCE, 1, 0))
-            / self.init_config.instance_size,
+            sum(np.where(abs(solution - 1) < TOLERANCE, 1, 0)) / self.init_config.instance_size,
             callback.get_objective_value() / callback.get_cutoff(),
             remain_leaves / total_leaves,
             processed_leaves / total_leaves,

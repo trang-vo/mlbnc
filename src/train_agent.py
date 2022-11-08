@@ -27,7 +27,7 @@ if __name__ == "__main__":
     ENTRY_CONFIG = load_config(name="entry", path="configs/{}.yaml".format(cut_type)).detail
     ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
     AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
-    print(ENV_CONFIG)
+    # print(ENV_CONFIG)
     temp=asdict(ENV_CONFIG)
     cities_num=int(re.search(r'[0-9]{3}',args[4]).group())
     temp["instance_size"]=cities_num
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     temp["data_folder"]=args[4]
     ENV_CONFIG=Config()
     ENV_CONFIG=temp
-    print(ENV_CONFIG)
+    # print(ENV_CONFIG)
     logdir = "../logs"
     now = datetime.datetime.now()
     t = "{}{}{}{}".format(now.month, now.day, now.hour, now.minute)

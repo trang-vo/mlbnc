@@ -241,7 +241,7 @@ class FeatureExtractor(BaseFeaturesExtractor):
         )
 
         statistic_vec = self.statistic_extractor(observations["statistic"])
-
+        #[2,2,6]
         features = [sup_vec, ori_vec, statistic_vec]
         x = torch.cat(features, dim=1)
 
@@ -277,7 +277,7 @@ class EvalFeatureExtractor(nn.Module):
         )
 
         statistic_vec = self.statistic_extractor(observations["statistic"])
-
+        #[2,2,6]
         features = [sup_vec, ori_vec, statistic_vec]
         x = torch.cat(features, dim=1)
 
