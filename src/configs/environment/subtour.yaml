@@ -14,5 +14,5 @@ limited_one_action: 2000
 time_limit: 3000
 reward_time_limit: -1000
 terminal_gap: 0.01
-reward_type: reward_shaping
+reward_type: vectorized
 state_extractor: PriorSubtourStateExtractor

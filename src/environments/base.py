@@ -14,6 +14,7 @@ from solvers.callbacks.state_extractor.state_extractor_name import STATE_EXTRACT
 from solvers.base import CALLBACK_NAME
 from problems.problem_name import PROBLEM_NAME
 from config import EnvConfig
+from utils import RewardCalculator
 
 
 class BaseCutEnv(gym.Env):
@@ -97,6 +98,8 @@ class BaseCutEnv(gym.Env):
         self.eval_instances = os.listdir(self.eval_folder)
 
         self.user_callback_class = CALLBACK_NAME[config["user_callback"]]
+
+        self.reward_calculator=RewardCalculator(config["reward_type"])
 
     def cplex_solve(self):
         self.solver.solve()
@@ -202,7 +205,8 @@ class BaseCutEnv(gym.Env):
                 print("Queue is empty")
 
         done = True
-        reward = 0
+
+        reward = self.reward_calculator.assign_reward(0)
         info = {"terminal_observation": self.last_state}
         if self.mode == "eval":
             time.sleep(1)
