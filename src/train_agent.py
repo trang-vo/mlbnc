@@ -25,11 +25,10 @@ if __name__ == "__main__":
     env_name: str = args[3]
 
     ENTRY_CONFIG = load_config(name="entry", path="configs/{}.yaml".format(cut_type)).detail
-    ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
-    AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
     #Adapt config to the instance
-    ENV_CONFIG=config_single_instance(ENV_CONFIG=ENV_CONFIG,instance_name=args[4])
-
+    ENV_CONFIG=config_single_instance(ENV_CONFIG=load_config(name="env", path=ENTRY_CONFIG.env_config).detail,instance_name=args[4])
+    AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
+    
     logdir = "../logs"
     now = datetime.datetime.now()
     t = "{}{}{}{}".format(now.month, now.day, now.hour, now.minute)
