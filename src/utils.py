@@ -12,5 +12,4 @@ def config_instance_size(ENV_CONFIG,cities_num):
     temp["data_folder"]="../data/tsp_instances/"+str(cities_num)
     ENV_CONFIG=Config()
     ENV_CONFIG=temp
-    print(ENV_CONFIG)
     return ENV_CONFIG

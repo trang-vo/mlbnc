@@ -27,8 +27,6 @@ if __name__ == "__main__":
     #change cities_num
     ENV_CONFIG = config_instance_size(ENV_CONFIG=load_config(name="env", path=ENTRY_CONFIG.env_config).detail,cities_num=cities_num)
     AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
-    
-    print(ENV_CONFIG)
 
     logdir = "../logs"
     now = datetime.datetime.now()
