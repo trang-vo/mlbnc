@@ -7,7 +7,7 @@ from lescode.config import load_config
 
 from environments.base import BaseCutEnv, PriorCutEnv
 from agents.base import DQNAgent
-
+from utils import config_instance_size
 
 ENV_NAME = {
     "BaseCutEnv": BaseCutEnv,
@@ -21,10 +21,14 @@ if __name__ == "__main__":
     problem_type: str = args[1]
     cut_type: str = args[2]
     env_name: str = args[3]
+    cities_num: int = int(args[4])
 
     ENTRY_CONFIG = load_config(name="entry", path="configs/{}.yaml".format(cut_type)).detail
-    ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
+    #change cities_num
+    ENV_CONFIG = config_instance_size(ENV_CONFIG=load_config(name="env", path=ENTRY_CONFIG.env_config).detail,cities_num=cities_num)
     AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
+    
+    print(ENV_CONFIG)
 
     logdir = "../logs"
     now = datetime.datetime.now()
