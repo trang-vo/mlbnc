@@ -113,20 +113,20 @@ class EvalCheckpointCallback(EvalCallback):
                 self.model.policy.q_net.q_value_recordings=[]
                 self.model.policy.q_net.statistic_recordings=[]
                 mean_q_values={"action0":np.mean(eval_q_values[:,0]),"action1":np.mean(eval_q_values[:,1])}
-                mean_statistics={
-                    "standarized_depth":np.mean(statistic_record[:,0]),
-                    "has_incumbent":np.mean(statistic_record[:,1]),
-                    "gap":np.mean(statistic_record[:,2]),
-                    "proportion_of_determined_edges":np.mean(statistic_record[:,3]),
-                    "cutoff_rate":np.mean(statistic_record[:,4]),
-                    "remain_leaf_proportion":np.mean(statistic_record[:,5]),
-                    "processed_leaf_proportion":np.mean(statistic_record[:,6]),
-                    "sum(lb)/cities":np.mean(statistic_record[:,7]),
-                    "1-sum(lb)/edges":np.mean(statistic_record[:,8]),
-                    "sum(ub)/edges":np.mean(statistic_record[:,9]),
-                    "1-sum(ub)/edges":np.mean(statistic_record[:,10]),
-                    "number_of_close_undetermined_edges/edges":np.mean(statistic_record[:,11]),
-                    }
+                # mean_statistics={
+                #     "standarized_depth":np.mean(statistic_record[:,0]),
+                #     "has_incumbent":np.mean(statistic_record[:,1]),
+                #     "gap":np.mean(statistic_record[:,2]),
+                #     "proportion_of_determined_edges":np.mean(statistic_record[:,3]),
+                #     "cutoff_rate":np.mean(statistic_record[:,4]),
+                #     "remain_leaf_proportion":np.mean(statistic_record[:,5]),
+                #     "processed_leaf_proportion":np.mean(statistic_record[:,6]),
+                #     "sum(lb)/cities":np.mean(statistic_record[:,7]),
+                #     "1-sum(lb)/edges":np.mean(statistic_record[:,8]),
+                #     "sum(ub)/edges":np.mean(statistic_record[:,9]),
+                #     "1-sum(ub)/edges":np.mean(statistic_record[:,10]),
+                #     "number_of_close_undetermined_edges/edges":np.mean(statistic_record[:,11]),
+                #     }
                 if self.verbose > 0:
                     print("Mean q_value: {}".format(mean_q_values))
                 eval_log_path=os.path.join(self.logger.get_dir(),"Evaluation_Details.csv")
@@ -214,29 +214,29 @@ class DQNAgent:
         device = torch.device(model_config["device"])
         print("Device to train model", device)
 
-        sup_feature_extractor = FEATURE_EXTRACTOR_NAME[
-            extractor_config["sup_feature_extractor"]
-        ](
-            node_dim=env_config["sup_node_dim"],
-            edge_dim=env_config["sup_edge_dim"],
-            hidden_size=extractor_config["sup_hidden_size"],
-            num_layers=extractor_config["sup_num_layers"],
-            n_clusters=extractor_config["sup_n_clusters"],
-            dropout=extractor_config["sup_dropout"],
-            device=device,
-        )
+        # sup_feature_extractor = FEATURE_EXTRACTOR_NAME[
+        #     extractor_config["sup_feature_extractor"]
+        # ](
+        #     node_dim=env_config["sup_node_dim"],
+        #     edge_dim=env_config["sup_edge_dim"],
+        #     hidden_size=extractor_config["sup_hidden_size"],
+        #     num_layers=extractor_config["sup_num_layers"],
+        #     n_clusters=extractor_config["sup_n_clusters"],
+        #     dropout=extractor_config["sup_dropout"],
+        #     device=device,
+        # )
 
-        ori_feature_extractor = FEATURE_EXTRACTOR_NAME[
-            extractor_config["ori_feature_extractor"]
-        ](
-            node_dim=env_config["ori_node_dim"],
-            edge_dim=env_config["ori_edge_dim"],
-            hidden_size=extractor_config["ori_hidden_size"],
-            num_layers=extractor_config["ori_num_layers"],
-            n_clusters=extractor_config["ori_n_clusters"],
-            dropout=extractor_config["ori_dropout"],
-            device=device,
-        )
+        # ori_feature_extractor = FEATURE_EXTRACTOR_NAME[
+        #     extractor_config["ori_feature_extractor"]
+        # ](
+        #     node_dim=env_config["ori_node_dim"],
+        #     edge_dim=env_config["ori_edge_dim"],
+        #     hidden_size=extractor_config["ori_hidden_size"],
+        #     num_layers=extractor_config["ori_num_layers"],
+        #     n_clusters=extractor_config["ori_n_clusters"],
+        #     dropout=extractor_config["ori_dropout"],
+        #     device=device,
+        # )
 
         statistic_extractor = FEATURE_EXTRACTOR_NAME[extractor_config["statistic_extractor"]](
             input_size=env_config["statistic_dim"],
@@ -248,8 +248,8 @@ class DQNAgent:
         policy_kwargs = dict(
             features_extractor_class=FeatureExtractor,
             features_extractor_kwargs={
-                "sup_feature_extractor": sup_feature_extractor,
-                "ori_feature_extractor": ori_feature_extractor,
+                # "sup_feature_extractor": sup_feature_extractor,
+                # "ori_feature_extractor": ori_feature_extractor,
                 "statistic_extractor": statistic_extractor,
                 "device": device,
             },

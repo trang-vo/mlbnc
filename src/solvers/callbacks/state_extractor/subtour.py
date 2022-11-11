@@ -258,11 +258,11 @@ class SubtourStateExtractor(StateExtractor):
     def get_state_representation(self, callback: UserCutCallback):
         solution = np.asarray(callback.get_values())
         support_graph = self.separator.create_support_graph(solution)
-        sup_representation = self.get_support_graph_representation(support_graph)
+        # sup_representation = self.get_support_graph_representation(support_graph)
 
         lb: np.array = np.asarray(callback.get_lower_bounds())
         ub: np.array = np.asarray(callback.get_upper_bounds())
-        ori_representation = self.get_original_graph_representation(solution, lb, ub)
+        # ori_representation = self.get_original_graph_representation(solution, lb, ub)
 
         processed_leaves: int = callback.get_num_nodes()
         remain_leaves: int = callback.get_num_remaining_nodes()
@@ -287,9 +287,9 @@ class SubtourStateExtractor(StateExtractor):
 
         state: Dict[str, np.array] = {"statistic": np.asarray(statistic)}
 
-        for representation in [sup_representation, ori_representation]:
-            for key, value in representation.items():
-                state[key] = value
+        # for representation in [sup_representation, ori_representation]:
+        #     for key, value in representation.items():
+        #         state[key] = value
 
         return state, support_graph
 

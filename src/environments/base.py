@@ -45,45 +45,45 @@ class BaseCutEnv(gym.Env):
         self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Dict(
             {
-                "sup_node_feature": spaces.Box(
-                    low=0.0,
-                    high=self.init_config.sup_nNodes,
-                    shape=(self.init_config.sup_nNodes, self.init_config.sup_node_dim),
-                ),
-                "sup_edge_index": spaces.Box(
-                    low=0,
-                    high=self.init_config.sup_nNodes,
-                    shape=(2, self.init_config.sup_nEdges),
-                ),
-                "sup_edge_feature": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(self.init_config.sup_nEdges, self.init_config.sup_edge_dim),
-                ),
-                "sup_lens": spaces.Box(
-                    low=0, high=self.init_config.sup_edge_dim, shape=(2,)
-                ),
-                "ori_node_feature": spaces.Box(
-                    low=0.0,
-                    high=self.init_config.instance_size,
-                    shape=(
-                        self.init_config.instance_size,
-                        self.init_config.ori_node_dim,
-                    ),
-                ),
-                "ori_edge_index": spaces.Box(
-                    low=0,
-                    high=self.init_config.instance_size,
-                    shape=(2, self.init_config.ori_nEdges),
-                ),
-                "ori_edge_feature": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(self.init_config.ori_nEdges, self.init_config.ori_edge_dim),
-                ),
-                "ori_lens": spaces.Box(
-                    low=0, high=self.init_config.ori_edge_dim, shape=(2,)
-                ),
+                # "sup_node_feature": spaces.Box(
+                #     low=0.0,
+                #     high=self.init_config.sup_nNodes,
+                #     shape=(self.init_config.sup_nNodes, self.init_config.sup_node_dim),
+                # ),
+                # "sup_edge_index": spaces.Box(
+                #     low=0,
+                #     high=self.init_config.sup_nNodes,
+                #     shape=(2, self.init_config.sup_nEdges),
+                # ),
+                # "sup_edge_feature": spaces.Box(
+                #     low=0,
+                #     high=1,
+                #     shape=(self.init_config.sup_nEdges, self.init_config.sup_edge_dim),
+                # ),
+                # "sup_lens": spaces.Box(
+                #     low=0, high=self.init_config.sup_edge_dim, shape=(2,)
+                # ),
+                # "ori_node_feature": spaces.Box(
+                #     low=0.0,
+                #     high=self.init_config.instance_size,
+                #     shape=(
+                #         self.init_config.instance_size,
+                #         self.init_config.ori_node_dim,
+                #     ),
+                # ),
+                # "ori_edge_index": spaces.Box(
+                #     low=0,
+                #     high=self.init_config.instance_size,
+                #     shape=(2, self.init_config.ori_nEdges),
+                # ),
+                # "ori_edge_feature": spaces.Box(
+                #     low=0,
+                #     high=1,
+                #     shape=(self.init_config.ori_nEdges, self.init_config.ori_edge_dim),
+                # ),
+                # "ori_lens": spaces.Box(
+                #     low=0, high=self.init_config.ori_edge_dim, shape=(2,)
+                # ),
                 "statistic": spaces.Box(
                     low=0.0, high=1e6, shape=(self.init_config.statistic_dim,)
                 ),
@@ -221,45 +221,45 @@ class PriorCutEnv(BaseCutEnv):
         super(PriorCutEnv, self).__init__(config, problem_type, cut_type, mode, result_path)
         self.observation_space = spaces.Dict(
             {
-                "sup_node_feature": spaces.Box(
-                    low=0.0,
-                    high=self.init_config.sup_nNodes,
-                    shape=(self.init_config.sup_nNodes, self.init_config.sup_node_dim),
-                ),
-                "sup_edge_index": spaces.Box(
-                    low=0,
-                    high=self.init_config.sup_nNodes,
-                    shape=(2, self.init_config.sup_nEdges),
-                ),
-                "sup_edge_feature": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(self.init_config.sup_nEdges, self.init_config.sup_edge_dim),
-                ),
-                "sup_lens": spaces.Box(
-                    low=0, high=self.init_config.sup_edge_dim, shape=(2,)
-                ),
-                "ori_node_feature": spaces.Box(
-                    low=0.0,
-                    high=self.init_config.instance_size,
-                    shape=(
-                        self.init_config.instance_size,
-                        self.init_config.ori_node_dim,
-                    ),
-                ),
-                "ori_edge_index": spaces.Box(
-                    low=0,
-                    high=self.init_config.instance_size,
-                    shape=(2, self.init_config.ori_nEdges),
-                ),
-                "ori_edge_feature": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(self.init_config.ori_nEdges, self.init_config.ori_edge_dim),
-                ),
-                "ori_lens": spaces.Box(
-                    low=0, high=self.init_config.ori_edge_dim, shape=(2,)
-                ),
+                # "sup_node_feature": spaces.Box(
+                #     low=0.0,
+                #     high=self.init_config.sup_nNodes,
+                #     shape=(self.init_config.sup_nNodes, self.init_config.sup_node_dim),
+                # ),
+                # "sup_edge_index": spaces.Box(
+                #     low=0,
+                #     high=self.init_config.sup_nNodes,
+                #     shape=(2, self.init_config.sup_nEdges),
+                # ),
+                # "sup_edge_feature": spaces.Box(
+                #     low=0,
+                #     high=1,
+                #     shape=(self.init_config.sup_nEdges, self.init_config.sup_edge_dim),
+                # ),
+                # "sup_lens": spaces.Box(
+                #     low=0, high=self.init_config.sup_edge_dim, shape=(2,)
+                # ),
+                # "ori_node_feature": spaces.Box(
+                #     low=0.0,
+                #     high=self.init_config.instance_size,
+                #     shape=(
+                #         self.init_config.instance_size,
+                #         self.init_config.ori_node_dim,
+                #     ),
+                # ),
+                # "ori_edge_index": spaces.Box(
+                #     low=0,
+                #     high=self.init_config.instance_size,
+                #     shape=(2, self.init_config.ori_nEdges),
+                # ),
+                # "ori_edge_feature": spaces.Box(
+                #     low=0,
+                #     high=1,
+                #     shape=(self.init_config.ori_nEdges, self.init_config.ori_edge_dim),
+                # ),
+                # "ori_lens": spaces.Box(
+                #     low=0, high=self.init_config.ori_edge_dim, shape=(2,)
+                # ),
                 "statistic": spaces.Box(
                     low=0.0, high=1e6, shape=(self.init_config.statistic_dim,)
                 ),
