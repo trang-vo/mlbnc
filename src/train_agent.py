@@ -19,14 +19,17 @@ ENV_NAME = {
 
 if __name__ == "__main__":
     args = sys.argv
-    #args = ["", "tsp", "subtour" , "PriorCutEnv" , "../data/tsp_instances/C100_7"]
+    #args = ["", "tsp", "subtour" , "PriorCutEnv" , "../data/tsp_instances/C200_2"]
     problem_type: str = args[1]
     cut_type: str = args[2]
     env_name: str = args[3]
+    #extra argument compared with master, indicating which instance folder this test would use, originally encoded in src/config/environment/subtour.yaml, attribute "data_folder: ../data/tsp_instances/200"
+    #I search for the longest digit in "data_folder" to be the instance size, in the case above, 200
+    data_folder: str = args[4]
 
     ENTRY_CONFIG = load_config(name="entry", path="configs/{}.yaml".format(cut_type)).detail
     #Adapt config to the instance
-    ENV_CONFIG=config_single_instance(ENV_CONFIG=load_config(name="env", path=ENTRY_CONFIG.env_config).detail,instance_name=args[4])
+    ENV_CONFIG=config_single_instance(ENV_CONFIG=load_config(name="env", path=ENTRY_CONFIG.env_config).detail,instance_name=data_folder)
     AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
     
     logdir = "../logs"
