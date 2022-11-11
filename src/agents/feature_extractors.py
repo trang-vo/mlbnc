@@ -52,7 +52,6 @@ def preprocess_graph_representation(
 
     return node_fea_batch, edge_index_batch, edge_fea_batch, batch_index
 
-
 class GNNGraphExtractor(nn.Module):
     def __init__(
         self,
@@ -113,7 +112,6 @@ class GNNGraphExtractor(nn.Module):
 
         return x
 
-
 class GINEGraphExtractor(nn.Module):
     def __init__(
         self,
@@ -170,7 +168,6 @@ class GINEGraphExtractor(nn.Module):
 
         return x
 
-
 class MLP(nn.Module):
     def __init__(
         self,
@@ -202,83 +199,83 @@ class MLP(nn.Module):
         x = F.normalize(x)
         return x
 
-
 class FeatureExtractor(BaseFeaturesExtractor):
     def __init__(
         self,
         observation_space: gym.Space,
-        sup_feature_extractor: nn.Module,
-        ori_feature_extractor: nn.Module,
+        # sup_feature_extractor: nn.Module,
+        # ori_feature_extractor: nn.Module,
         statistic_extractor: nn.Module,
         features_dim: int = 1,
         **kwargs,
     ):
         super().__init__(observation_space, features_dim)
         self.device = kwargs["device"]
-        self.sup_feature_extractor = sup_feature_extractor.to(self.device)
-        self.ori_feature_extractor = ori_feature_extractor.to(self.device)
+        # self.sup_feature_extractor = sup_feature_extractor.to(self.device)
+        # self.ori_feature_extractor = ori_feature_extractor.to(self.device)
         self.statistic_extractor = statistic_extractor.to(self.device)
 
-        self._features_dim = (
-            self.sup_feature_extractor.output_size
-            + self.ori_feature_extractor.output_size
-            + self.statistic_extractor.output_size
-        )
+        # self._features_dim = (
+        #     self.sup_feature_extractor.output_size
+        #     + self.ori_feature_extractor.output_size
+        #     + self.statistic_extractor.output_size
+        # )
+        self._features_dim=self.statistic_extractor.output_size
 
     def forward(self, observations):
-        sup_vec = self.sup_feature_extractor(
-            observations["sup_node_feature"],
-            observations["sup_edge_index"],
-            observations["sup_edge_feature"],
-            observations["sup_lens"],
-        )
+        # sup_vec = self.sup_feature_extractor(
+        #     observations["sup_node_feature"],
+        #     observations["sup_edge_index"],
+        #     observations["sup_edge_feature"],
+        #     observations["sup_lens"],
+        # )
 
-        ori_vec = self.ori_feature_extractor(
-            observations["ori_node_feature"],
-            observations["ori_edge_index"],
-            observations["ori_edge_feature"],
-            observations["ori_lens"],
-        )
+        # ori_vec = self.ori_feature_extractor(
+        #     observations["ori_node_feature"],
+        #     observations["ori_edge_index"],
+        #     observations["ori_edge_feature"],
+        #     observations["ori_lens"],
+        # )
 
         statistic_vec = self.statistic_extractor(observations["statistic"])
         #[2,2,6]
-        features = [sup_vec, ori_vec, statistic_vec]
+        # features = [sup_vec, ori_vec, statistic_vec]
+        features = [statistic_vec]
         x = torch.cat(features, dim=1)
 
         return x
 
-
 class EvalFeatureExtractor(nn.Module):
     def __init__(
         self,
-        sup_feature_extractor: nn.Module,
-        ori_feature_extractor: nn.Module,
+        # sup_feature_extractor: nn.Module,
+        # ori_feature_extractor: nn.Module,
         statistic_extractor: nn.Module,
     ) -> None:
         super().__init__()
-
-        self.sup_feature_extractor = sup_feature_extractor
-        self.ori_feature_extractor = ori_feature_extractor
+        # self.sup_feature_extractor = sup_feature_extractor
+        # self.ori_feature_extractor = ori_feature_extractor
         self.statistic_extractor = statistic_extractor
 
     def forward(self, observations):
-        sup_vec = self.sup_feature_extractor(
-            observations["sup_node_feature"],
-            observations["sup_edge_index"],
-            observations["sup_edge_feature"],
-            observations["sup_lens"],
-        )
+        # sup_vec = self.sup_feature_extractor(
+        #     observations["sup_node_feature"],
+        #     observations["sup_edge_index"],
+        #     observations["sup_edge_feature"],
+        #     observations["sup_lens"],
+        # )
 
-        ori_vec = self.ori_feature_extractor(
-            observations["ori_node_feature"],
-            observations["ori_edge_index"],
-            observations["ori_edge_feature"],
-            observations["ori_lens"],
-        )
+        # ori_vec = self.ori_feature_extractor(
+        #     observations["ori_node_feature"],
+        #     observations["ori_edge_index"],
+        #     observations["ori_edge_feature"],
+        #     observations["ori_lens"],
+        # )
 
         statistic_vec = self.statistic_extractor(observations["statistic"])
         #[2,2,6]
-        features = [sup_vec, ori_vec, statistic_vec]
+        # features = [sup_vec, ori_vec, statistic_vec]
+        features = [statistic_vec]
         x = torch.cat(features, dim=1)
 
         return x
