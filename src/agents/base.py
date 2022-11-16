@@ -26,8 +26,10 @@ class DumpLogsEveryNTimeSteps(BaseCallback):
         self.check_freq = n_steps
 
     def _on_step(self):
+        DumpLogsEveryNTimeStepsCost=time()
         if self.n_calls % self.check_freq == 0:
             self.model._dump_logs()
+            print("Dump Basic Log Cost:{:.2f}".format(time()-DumpLogsEveryNTimeStepsCost))
         return True
 
 
@@ -41,9 +43,11 @@ class SaveReplayBufferEveryNTimeSteps(BaseCallback):
         return True
 
     def _on_rollout_end(self):
+        SaveReplayBufferCost=time()
         if self.n_calls % self.check_freq == 0:
             save_path = os.path.join(self.save_dir, "buffer_{}_step.pkl".format(self.n_calls))
             self.model.save_replay_buffer(save_path)
+            print("Save Replay Buffer Cost:{:.2f}".format(time()-SaveReplayBufferCost))
         return True
 
 
@@ -171,7 +175,7 @@ class EvalCheckpointCallback(EvalCallback):
                 # Trigger callback if needed
                 if self.callback is not None:
                     return self._on_event()
-            print("Dump log cost:{:.2f}".format(time()-dump_start))
+            print("Eval Dump log cost:{:.2f}".format(time()-dump_start)) 
 
         return True
 

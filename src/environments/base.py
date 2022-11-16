@@ -98,6 +98,7 @@ class BaseCutEnv(gym.Env):
 
         self.user_callback_class = CALLBACK_NAME[config["user_callback"]]
         self.step_time=time.time()
+        print(">>Initialize Timer start<<")
 
     def cplex_solve(self):
         self.solver.solve()
@@ -111,6 +112,7 @@ class BaseCutEnv(gym.Env):
 
     def reset(self, instance_path=None, steps="", **kwargs):
         reset_start=time.time()
+        print(">>Reset start<<")
         if self.solver_proc is not None:
             self.solver_proc.terminate()
             self.action_queue.close()
@@ -207,6 +209,7 @@ class BaseCutEnv(gym.Env):
                 Cplex_cost=time.time()-inner_time_start
                 print("Total cost: {:.2f}\tCplex cost: {:.2f}\tOther cost: {:.2f}\tCplex propotion: {:.2f} %".format(Total_cost,Cplex_cost,Total_cost-Cplex_cost,(Cplex_cost/Total_cost)*100))
                 self.step_time=time.time()
+                print(">>Timer start<<")
 
                 return obs, reward, done, info
             except queue.Empty:
