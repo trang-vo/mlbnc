@@ -163,6 +163,8 @@ class DQN(OffPolicyAlgorithm):
         self._update_learning_rate(self.policy.optimizer)
 
         losses = []
+        train_start=time()
+        print(">>Train starts<<")
         for _ in range(gradient_steps):
             # Sample replay buffer
             replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
@@ -181,9 +183,8 @@ class DQN(OffPolicyAlgorithm):
             #     with record_function("model_inference"):
 
             # Get current Q-values estimates
-            q_start=time()
             current_q_values = self.q_net(replay_data.observations)
-            print("Q net cost: {:.2f}".format(time()-q_start))
+            
             # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
             # Retrieve the q-values for the actions from the replay buffer
@@ -199,7 +200,7 @@ class DQN(OffPolicyAlgorithm):
             # Clip gradient norm
             th.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.policy.optimizer.step()
-
+        print("Train Q net cost: {:.2f}".format(time()-train_start))
         # Increase update counter
         self._n_updates += gradient_steps
 
