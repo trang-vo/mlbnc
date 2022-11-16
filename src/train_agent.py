@@ -5,11 +5,9 @@ import sys
 from typing import *
 
 from lescode.config import load_config
-from lescode.namespace import asdict
-from lescode.config import Config
 from environments.base import BaseCutEnv, PriorCutEnv
 from agents.base import DQNAgent
-from utils import config_single_instance
+from utils import config_data_folder
 
 ENV_NAME = {
     "BaseCutEnv": BaseCutEnv,
@@ -23,10 +21,11 @@ if __name__ == "__main__":
     problem_type: str = args[1]
     cut_type: str = args[2]
     env_name: str = args[3]
+    data_folder: str = args[4]
 
     ENTRY_CONFIG = load_config(name="entry", path="configs/{}.yaml".format(cut_type)).detail
     #Adapt config to the instance
-    ENV_CONFIG=config_single_instance(ENV_CONFIG=load_config(name="env", path=ENTRY_CONFIG.env_config).detail,instance_name=args[4])
+    ENV_CONFIG=config_data_folder(ENV_CONFIG=load_config(name="env", path=ENTRY_CONFIG.env_config).detail,data_folder=data_folder)
     AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
     
     logdir = "../logs"

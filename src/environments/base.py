@@ -97,6 +97,7 @@ class BaseCutEnv(gym.Env):
         self.eval_instances = os.listdir(self.eval_folder)
 
         self.user_callback_class = CALLBACK_NAME[config["user_callback"]]
+        self.step_time=time.time()
 
     def cplex_solve(self):
         self.solver.solve()
@@ -189,18 +190,27 @@ class BaseCutEnv(gym.Env):
 
     def step(self, action: int):
         self.action_queue.put(action)
-
         while self.solver_proc.is_alive():
             try:
+                #Cplex start to solve
+                inner_time_start=time.time()
+
                 obs, reward, done, info = self.state_queue.get(timeout=5)
                 self.last_state = obs
                 # Wait to write results to file if mode is eval
                 if self.mode == "eval" and done:
                     time.sleep(1)
+
+                #Timer
+                Total_cost=time.time()-self.step_time
+                Cplex_cost=time.time()-inner_time_start
+                print("Total cost: {:.2f}\tCplex cost: {:.2f}\tOther cost: {:.2f}\tCplex propotion: {:.2f} %".format(Total_cost,Cplex_cost,Total_cost-Cplex_cost,(Cplex_cost/Total_cost)*100))
+                self.step_time=time.time()
+
                 return obs, reward, done, info
             except queue.Empty:
                 print("Queue is empty")
-
+        
         done = True
         reward = 0
         info = {"terminal_observation": self.last_state}

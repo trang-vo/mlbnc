@@ -1,3 +1,4 @@
+from time import time
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import gym
@@ -12,6 +13,10 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedul
 from stable_baselines3.common.utils import get_linear_fn, is_vectorized_observation, polyak_update
 from .dqn_policies import DQNPolicy
 
+#use profiler
+import torch
+import torchvision.models as models
+from torch.profiler import profile, record_function, ProfilerActivity
 
 class DQN(OffPolicyAlgorithm):
     """
@@ -172,8 +177,14 @@ class DQN(OffPolicyAlgorithm):
                 # 1-step TD target
                 target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
 
+            # with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
+            #     with record_function("model_inference"):
+
             # Get current Q-values estimates
+            q_start=time()
             current_q_values = self.q_net(replay_data.observations)
+            print("Q net cost: {:.2f}".format(time()-q_start))
+            # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
             # Retrieve the q-values for the actions from the replay buffer
             current_q_values = th.gather(current_q_values, dim=1, index=replay_data.actions.long())

@@ -1,5 +1,6 @@
 import json
 import os
+from time import time
 
 import numpy as np
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -62,7 +63,7 @@ class EvalCheckpointCallback(EvalCallback):
                 warn=self.warn,
                 callback=self._log_success_callback,
             )
-
+            dump_start=time()
             if self.log_path is not None:
                 self.evaluations_timesteps.append(self.num_timesteps)
                 self.evaluations_results.append(episode_rewards)
@@ -113,26 +114,26 @@ class EvalCheckpointCallback(EvalCallback):
                 self.model.policy.q_net.q_value_recordings=[]
                 self.model.policy.q_net.statistic_recordings=[]
                 mean_q_values={"action0":np.mean(eval_q_values[:,0]),"action1":np.mean(eval_q_values[:,1])}
-                mean_statistics={
-                    "standarized_depth":np.mean(statistic_record[:,0]),
-                    "has_incumbent":np.mean(statistic_record[:,1]),
-                    "gap":np.mean(statistic_record[:,2]),
-                    "proportion_of_determined_edges":np.mean(statistic_record[:,3]),
-                    "cutoff_rate":np.mean(statistic_record[:,4]),
-                    "remain_leaf_proportion":np.mean(statistic_record[:,5]),
-                    "processed_leaf_proportion":np.mean(statistic_record[:,6]),
-                    "sum(lb)/cities":np.mean(statistic_record[:,7]),
-                    "1-sum(lb)/edges":np.mean(statistic_record[:,8]),
-                    "sum(ub)/edges":np.mean(statistic_record[:,9]),
-                    "1-sum(ub)/edges":np.mean(statistic_record[:,10]),
-                    "number_of_close_undetermined_edges/edges":np.mean(statistic_record[:,11]),
-                    }
+                # mean_statistics={
+                #     "standarized_depth":np.mean(statistic_record[:,0]),
+                #     "has_incumbent":np.mean(statistic_record[:,1]),
+                #     "gap":np.mean(statistic_record[:,2]),
+                #     "proportion_of_determined_edges":np.mean(statistic_record[:,3]),
+                #     "cutoff_rate":np.mean(statistic_record[:,4]),
+                #     "remain_leaf_proportion":np.mean(statistic_record[:,5]),
+                #     "processed_leaf_proportion":np.mean(statistic_record[:,6]),
+                #     "sum(lb)/cities":np.mean(statistic_record[:,7]),
+                #     "1-sum(lb)/edges":np.mean(statistic_record[:,8]),
+                #     "sum(ub)/edges":np.mean(statistic_record[:,9]),
+                #     "1-sum(ub)/edges":np.mean(statistic_record[:,10]),
+                #     "number_of_close_undetermined_edges/edges":np.mean(statistic_record[:,11]),
+                #     }
                 if self.verbose > 0:
                     print("Mean q_value: {}".format(mean_q_values))
                 eval_log_path=os.path.join(self.logger.get_dir(),"Evaluation_Details.csv")
                 if (not os.path.exists(eval_log_path)) or os.path.getsize(eval_log_path)==0:
                     with open(eval_log_path,mode='w',encoding="utf-8") as EvaluationDetails:
-                        EvaluationDetails.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format("TS","EPL","Q0","Q1","standarized_depth","has_incumbent","gap","proportion_of_determined_edges","cutoff_rate","remain_leaf_proportion","processed_leaf_proportion","sum(lb)/cities","1-sum(lb)/edges","sum(ub)/edges","1-sum(ub)/edges","number_of_close_undetermined_edges/edges"))
+                        EvaluationDetails.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format("TS","EPL","Q0","Q1","standarized_depth","has_incumbent","gap","proportion_of_determined_edges","cutoff_rate","remain_leaf_proportion","processed_leaf_proportion","sum(lb)/cities","1-sum(lb)/edges","sum(ub)/edges","1-sum(ub)/edges","determined_edges/edges"))
                 with open(eval_log_path,mode='a',encoding="utf-8") as EvaluationDetails:
                     # q_value_log.write("Evaluated at Timestep: {}\t with episode_length: {}\n".format(self.num_timesteps,episode_lengths[0]))
                     for i in range(episode_lengths[0]):
@@ -140,7 +141,7 @@ class EvalCheckpointCallback(EvalCallback):
                             self.num_timesteps,
                             episode_lengths[0],
                             eval_q_values[i,0],eval_q_values[i,1],
-                            statistic_record[i,0],eval_q_values[i,1],statistic_record[i,2],statistic_record[i,3],statistic_record[i,4],statistic_record[i,5],statistic_record[i,6],statistic_record[i,7],statistic_record[i,8],statistic_record[i,9],statistic_record[i,10],statistic_record[i,11]
+                            statistic_record[i,0],statistic_record[i,1],statistic_record[i,2],statistic_record[i,3],statistic_record[i,4],statistic_record[i,5],statistic_record[i,6],statistic_record[i,7],statistic_record[i,8],statistic_record[i,9],statistic_record[i,10],statistic_record[i,11]
                             ))
                     print("Record q values in evaluation at {} training steps".format(self.num_timesteps))
                 self.logger.record("eval/q_value_0", mean_q_values["action0"])
@@ -170,6 +171,7 @@ class EvalCheckpointCallback(EvalCallback):
                 # Trigger callback if needed
                 if self.callback is not None:
                     return self._on_event()
+            print("Dump log cost:{:.2f}".format(time()-dump_start))
 
         return True
 

@@ -16,7 +16,7 @@
                 "tsp",
                 "subtour",
                 "PriorCutEnv",
-                "../data/tsp_instances/C150_2",
+                "../data/tsp_instances/C200_2",
             ]
         }
     ]
