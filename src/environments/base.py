@@ -110,6 +110,7 @@ class BaseCutEnv(gym.Env):
                                                   self.user_callback.actions[0], self.user_callback.actions[1]))
 
     def reset(self, instance_path=None, steps="", **kwargs):
+        reset_start=time.time()
         if self.solver_proc is not None:
             self.solver_proc.terminate()
             self.action_queue.close()
@@ -135,9 +136,9 @@ class BaseCutEnv(gym.Env):
             self.problem = PROBLEM_NAME[self.problem_type](instance_path)
             if len(self.problem.graph.nodes) == self.init_config.instance_size:
                 break
-
+        process_instance_start=time.time()
         print("Processing instance", instance_path)
-
+        
         time_limit = 3600 if self.mode == "train" else 1800
         log_path = ""
         if self.mode == "eval":
@@ -156,7 +157,7 @@ class BaseCutEnv(gym.Env):
                 "eval_log",
                 "{}_{}.log".format(self.problem.graph.graph["name"], t),
             )
-
+        initialize_solver_start=time.time()
         self.solver = SOLVER_NAME[self.problem_type](
             problem=self.problem,
             display_log=kwargs["display_log"] if "display_log" in kwargs else False,
@@ -185,7 +186,7 @@ class BaseCutEnv(gym.Env):
         self.solver_proc.start()
 
         obs, _, _, _ = self.state_queue.get()
-
+        print("Reset total cost:{:.2f}\tProcess instance cost:{:.2f}\tInitialized solver cost:{:.2f}".format(time.time()-reset_start,process_instance_start-reset_start,time.time()-initialize_solver_start))
         return obs
 
     def step(self, action: int):
