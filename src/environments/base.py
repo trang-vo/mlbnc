@@ -112,7 +112,7 @@ class BaseCutEnv(gym.Env):
 
     def reset(self, instance_path=None, steps="", **kwargs):
         reset_start=time.time()
-        print(">>Reset start<<")
+        print(">>Reset start, before it it cost {:.2f}<<".format(reset_start-self.step_time))
         if self.solver_proc is not None:
             self.solver_proc.terminate()
             self.action_queue.close()
