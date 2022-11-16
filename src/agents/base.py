@@ -56,7 +56,8 @@ class EvalCheckpointCallback(EvalCallback):
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Reset success rate buffer
             self._is_success_buffer = []
-            
+            print(">>Eval Start<<")
+            eval_start=time()
             episode_rewards, episode_lengths = evaluate_policy(
                 self.model,
                 self.eval_env,
@@ -67,6 +68,7 @@ class EvalCheckpointCallback(EvalCallback):
                 warn=self.warn,
                 callback=self._log_success_callback,
             )
+            print("Eval cost:{:.2f}".format(time()-eval_start)) 
             dump_start=time()
             if self.log_path is not None:
                 self.evaluations_timesteps.append(self.num_timesteps)
@@ -147,7 +149,6 @@ class EvalCheckpointCallback(EvalCallback):
                             eval_q_values[i,0],eval_q_values[i,1],
                             statistic_record[i,0],statistic_record[i,1],statistic_record[i,2],statistic_record[i,3],statistic_record[i,4],statistic_record[i,5],statistic_record[i,6],statistic_record[i,7],statistic_record[i,8],statistic_record[i,9],statistic_record[i,10],statistic_record[i,11]
                             ))
-                    print("Record q values in evaluation at {} training steps".format(self.num_timesteps))
                 self.logger.record("eval/q_value_0", mean_q_values["action0"])
                 self.logger.record("eval/q_value_1", mean_q_values["action1"])
 
