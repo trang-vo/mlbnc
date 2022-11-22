@@ -1,18 +1,23 @@
-instance_size: 100 # the number of instance's nodes
-ori_nEdges: 990 # = the number of edges in graph * 2 (times 2 because of the graph representation in pytorch-geometric)
-ori_node_dim: 1
-ori_edge_dim: 4
-sup_nNodes: 200 # the number of nodes of the support graph = instance_size
-sup_nEdges: 3960 # = the number of edges * 4 * 2 (times 4 because of separation problem and times 2 because of the graph representation in pytorch-geometric)
-sup_node_dim: 1
-sup_edge_dim: 1
-statistic_dim: 12
+space_config:
+  instance_size: 100
+  ori_nEdges: 990 # = the number of edges in graph * 2 (times 2 because of the graph representation in pytorch-geometric)
+  ori_node_dim: 1
+  ori_edge_dim: 4
+  statistic_dim: 12
+  sup_nNodes: 2000
+  sup_nEdges: 3960 # = the number of edges * 4 * 2 (times 4 because of separation problem and times 2 because of the graph representation in pytorch-geometric)
+  sup_node_dim: 1
+  sup_edge_dim: 1
+state_extractor_class: PriorCycleStateExtractor
 data_folder: ../data/maxcut_instances/100
-user_callback: EnvUserCallback
-k: 10
-limited_one_action: 2000
-time_limit: 3000
-reward_time_limit: -1000
-terminal_gap: 0
-reward_type: time
-state_extractor: PriorCycleStateExtractor
+k_nearest_neighbors: 10
+episode_config:
+  limited_one_action: 2000
+  time_limit: 3000
+  reward_time_limit: -1000
+  terminal_gap: 0.01
+  reward_type: relative_time_distance
+initial_start_distance: 1
+final_start_distance: 1
+start_distance_fraction: 0.5
+total_train_steps: 1000000

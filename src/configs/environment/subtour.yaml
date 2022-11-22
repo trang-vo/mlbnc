@@ -1,18 +1,23 @@
-instance_size: 100 # the number of instance's nodes
-ori_nEdges: 2000 # the number of edges in k-nearest neighbors graph, around instance_size * k * 2
-ori_node_dim: 1
-ori_edge_dim: 4
-statistic_dim: 12
-sup_nNodes: 100 # the number of nodes of the support graph = instance_size
-sup_nEdges: 300 # the number of edges of the support graph, around instance_size * 3
-sup_node_dim: 1
-sup_edge_dim: 1
-data_folder: ../data/tsp_instances/100
-user_callback: EnvUserCallback
-k: 10
-limited_one_action: 2000
-time_limit: 3000
-reward_time_limit: -1000
-terminal_gap: 0.01
-reward_type: reward_shaping
-state_extractor: PriorSubtourStateExtractor
+space_config:
+  instance_size: 200
+  ori_nEdges: 3000
+  ori_node_dim: 1
+  ori_edge_dim: 4
+  statistic_dim: 12
+  sup_nNodes: 200
+  sup_nEdges: 500
+  sup_node_dim: 1
+  sup_edge_dim: 1
+state_extractor_class: PriorSubtourStateExtractor
+data_folder: ../data/tsp_instances/200_one
+k_nearest_neighbors: 10
+episode_config:
+  limited_one_action: 2000
+  time_limit: 3000
+  reward_time_limit: -1000
+  terminal_gap: 0.01
+  reward_type: time
+initial_start_distance: 1
+final_start_distance: 1
+start_distance_fraction: 0.5
+total_train_steps: 1000000

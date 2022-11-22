@@ -3,13 +3,13 @@ from time import time
 from .base import Solver, CALLBACK_NAME
 from problems.maxcut import MaxcutProblem
 from .callbacks.base import BaseLazyCallback
-from .callbacks.separators.cycle import CycleSeparator
+from .callbacks.separators.separator_name import SEPARATOR_NAME
 
 
 class MaxcutSolver(Solver):
-    def __init__(self, problem: MaxcutProblem, **kwargs) -> None:
+    def __init__(self, problem: MaxcutProblem, cut_type: str, **kwargs) -> None:
         super().__init__(problem, **kwargs)
-        self.separator = CycleSeparator(self.edge2idx, self.graph)
+        self.separator = SEPARATOR_NAME[cut_type](self.edge2idx, origin_graph=self.graph)
 
         lazy_constraint = self.register_callback(BaseLazyCallback)
         lazy_constraint.set_attribute(self.separator)

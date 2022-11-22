@@ -9,10 +9,11 @@ from utils import nodes2edge
 
 
 class CycleSeparator(Separator):
-    def __init__(self, var2idx: Dict[Any, int], origin_graph: nx.Graph) -> None:
+    def __init__(self, var2idx: Dict[Any, int], **kwargs) -> None:
         super().__init__(var2idx)
         self.cut_type = "cycle"
-        self.origin_graph = origin_graph
+        assert "origin_graph" in kwargs, "Require the origin graph to initialize Cycle separator"
+        self.origin_graph = kwargs["origin_graph"]
 
     def create_support_graph(self, solution: np.array):
         support_graph = nx.Graph()

@@ -235,9 +235,9 @@ class PriorCycleStateExtractor(CycleStateExtractor):
     def get_state_representation(self, callback: UserCutCallback):
         state, support_graph = super().get_state_representation(callback)
 
-        if callback.prev_cuts > 0:
-            state["prior"] = 5
+        if callback.prev_cuts == 0:
+            state["prior"] = 3
         else:
-            state["prior"] = 1
+            state["prior"] = 0
 
         return state, support_graph

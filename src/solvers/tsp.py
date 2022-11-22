@@ -4,13 +4,13 @@ from time import time
 from .base import Solver, cplex, CALLBACK_NAME
 from problems.tsp import TSPProblem
 from .callbacks.base import BaseLazyCallback
-from .callbacks.separators.subtour import SubtourSeparator
+from .callbacks.separators.separator_name import SEPARATOR_NAME
 
 
 class TSPSolver(Solver):
-    def __init__(self, problem: TSPProblem, **kwargs) -> None:
+    def __init__(self, problem: TSPProblem, cut_type: str, **kwargs) -> None:
         super().__init__(problem, **kwargs)
-        self.separator = SubtourSeparator(self.edge2idx)
+        self.separator = SEPARATOR_NAME[cut_type](self.edge2idx)
 
         lazy_constraint = self.register_callback(BaseLazyCallback)
         lazy_constraint.set_attribute(self.separator)
@@ -43,6 +43,7 @@ class TSPSolver(Solver):
             )
 
     def basic_solve(self, *args, **kwargs):
+        user_callback = None
         if "user_callback" in kwargs:
             user_callback = self.register_callback(
                 CALLBACK_NAME[kwargs["user_callback"]]
@@ -54,5 +55,8 @@ class TSPSolver(Solver):
         t = time() - s
         print("Time to solve model", t)
         print("The objective value is", self.solution.get_objective_value())
+
+        if hasattr(user_callback, "portion_cuts"):
+            print(user_callback.portion_cuts)
 
         return t, self.solution.get_objective_value()

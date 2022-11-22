@@ -24,6 +24,7 @@ class Solver(cplex.Cplex):
 
         if "display_log" in kwargs:
             if not kwargs["display_log"]:
+                logfile = None
                 if "log_path" in kwargs:
                     if kwargs["log_path"] != "":
                         logfile = open(kwargs["log_path"], "w")
@@ -35,6 +36,7 @@ class Solver(cplex.Cplex):
                 self.logger = self.set_log_stream(logfile)
 
         if "time_limit" in kwargs:
+            print("Time limit is", kwargs["time_limit"])
             self.parameters.timelimit.set(kwargs["time_limit"])
 
         self.edge2idx = {}

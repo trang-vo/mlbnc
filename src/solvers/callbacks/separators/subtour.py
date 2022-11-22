@@ -9,7 +9,7 @@ from utils import nodes2edge
 
 
 class SubtourSeparator(Separator):
-    def __init__(self, var2idx: Dict[Any, int]) -> None:
+    def __init__(self, var2idx: Dict[Any, int], **kwargs) -> None:
         super().__init__(var2idx)
         self.cut_type = "subtour"
 

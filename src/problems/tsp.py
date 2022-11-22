@@ -14,6 +14,12 @@ class TSPProblem(Problem):
         problem = tsplib95.load(path)
         self.graph: nx.Graph = problem.get_graph(normalize=True)
 
+        removed_edges = []
         for edge in self.graph.edges:
-            if self.graph.edges[edge]["weight"] == 0:
-                self.graph.remove_edge(*edge)
+            if edge[0] == edge[1]:
+                removed_edges.append(edge)
+
+        for edge in removed_edges:
+            self.graph.remove_edge(*edge)
+
+        self.graph = self.graph.to_undirected()

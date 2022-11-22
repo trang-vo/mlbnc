@@ -12,7 +12,7 @@ class StateExtractor:
         self.init_config = None
         if padding:
             if "config" not in kwds:
-                raise KeyError("Need to provide environment configs to pad")
+                raise KeyError("Need to provide space configs to pad")
 
         if "config" in kwds:
             self.init_config = EnvConfig(kwds["config"])

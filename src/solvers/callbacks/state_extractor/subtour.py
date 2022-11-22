@@ -318,10 +318,11 @@ class PriorSubtourStateExtractor(SubtourStateExtractor):
     def get_state_representation(self, callback: UserCutCallback):
         state, support_graph = super(PriorSubtourStateExtractor, self).get_state_representation(callback)
 
+        # set the priority for states, 1 represents states which are prioritized
         if callback.prev_cuts > 0:
-            state["prior"] = 5
-        else:
             state["prior"] = 1
+        else:
+            state["prior"] = 0
 
         return state, support_graph
 

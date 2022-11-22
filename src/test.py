@@ -18,9 +18,6 @@ import numpy as np
 from lescode.config import load_config, get_config
 
 
-ENTRY_CONFIG = load_config(name="entry", path="configs/cycle.yaml").detail
-ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
-AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
 
 def write_model_parameters():
     model_path = "../logs/CycleEnv_8171628/model_614000_steps"
@@ -86,14 +83,23 @@ def write_model_parameters():
     print(model.q_net.features_extractor.state_dict())
     print(model.q_net.q_net)
 
-    torch.save(model.q_net.features_extractor.state_dict(),
-               "../logs/CycleEnv_8171628/features_extractor_model_748000_steps.pt")
-    torch.save(model.q_net.q_net, "../logs/CycleEnv_8171628/q_net_model_748000_steps.pt")
-
+    # torch.save(model.q_net.features_extractor.state_dict(),
+    #            "../logs/CycleEnv_8171628/features_extractor_model_614000_steps.pt")
+    # torch.save(model.q_net.q_net, "../logs/CycleEnv_8171628/q_net_model_614000_steps.pt")
+    torch.save({"features_extractor": model.q_net.features_extractor.state_dict(),
+                "agent": model.q_net.q_net}, "")
     print("finish")
 
 
+def read_old_model(model_folder, model_name, model_root="../logs"):
+    model_path = os.path.join(model_root, model_folder, model_name)
+    model = DQN.load(model_path)
+    torch.save({"features_extractor": model.q_net.features_extractor.state_dict(),
+                "agent": model.q_net.q_net}, os.path.join(model_root, model_folder, "{}.pt".format(model_name)))
+
+
 if __name__ == "__main__":
+    read_old_model("CutEnv_gap_12_1_661057", "best_model")
     # instance_paths = glob("../data/tsp_instances/100/eval/C*.tsp")
     # instance_paths = ["../data/tsp_instances/100/train/C100_90.tsp"]
     # for path in instance_paths:
@@ -106,17 +112,28 @@ if __name__ == "__main__":
     #     solver.solve()
     #     if user_callback.processed_nodes < 5:
     #         print("Remove", path)
-            # os.remove(path)
+    # os.remove(path)
 
-    # prob = MaxcutProblem("../data/maxcut/rudy_all/pm1s_100.1")
-    # solver = MaxcutSolver(prob)
-    # solver.basic_solve(user_callback="CycleUserCallback", user_cb_kwargs={"origin_graph": prob.graph})
+    # prob = MaxcutProblem("../data/maxcut/rudy_all/g05_60.0")
+    # solver = MaxcutSolver(prob, cut_type="cycle", display_log=False,
+    #                       log_path="../results/observations/g05_60_0_f1.txt")
+    # solver.basic_solve(user_callback="BaseUserCallback",
+    #                    user_cb_kwargs={"origin_graph": prob.graph, "frequent": 1, "terminal_gap": 0,
+    #                                    "logger": solver.logger})
 
+    # prob = TSPProblem("../data/tsplib/eil76.tsp")
+    # solver = TSPSolver(prob, cut_type="subtour", display_log=False, log_path="../results/observations/kroB200_f10.txt")
+    # solver.basic_solve(user_callback="BaseUserCallback",
+    #                    user_cb_kwargs={"frequent": 10, "terminal_gap": 0, "logger": solver.logger})
 
-    #
-    # env = BaseCutEnv(ENV_CONFIG, problem_type="maxcut", cut_type="cycle", mode="eval", result_path="../logs/result_eval.csv")
+    # ENTRY_CONFIG = load_config(name="entry", path="configs/subtour.yaml").detail
+    # ENV_CONFIG = load_config(name="env", path=ENTRY_CONFIG.env_config).detail
+    # AGENT_CONFIG = load_config(name="agent", path=ENTRY_CONFIG.agent_config).detail
+    # #
+    # env = BaseCutEnv1(ENV_CONFIG, problem_type="tsp", cut_type="subtour", mode="train")
     # done = False
-    # obs = env.reset(instance_path="../data/maxcut_instances/100/eval/pm100_10_1907.maxcut", display_log=True)
+    # obs = env.reset()
+    # print("Obtained an initial state")
     # action = 0
     # total_reward = 0
     # while not done:
@@ -125,15 +142,9 @@ if __name__ == "__main__":
     #     action = 0
     # print(total_reward)
 
-
-
     # model_path = "../logs/CutEnv_gap_12_1_661057/model_976000_steps.zip"
     # model_path = "../logs/CycleEnv_8171628/model_614000_steps.zip"
     # model_path = "../logs/SubtourEnv_818544/model_1000_steps.zip"
-    # model_path = "../logs/best_model.zip"
-    # model = DQN.load(model_path, device="cpu")
-    # # model.load_replay_buffer("../logs/SubtourEnv_824109/buffer_100000_step.pkl", truncate_last_traj=False)
+    # model_path = "../logs/SubtourEnv_824542/model_60_steps.zip"
+    # model = DQN.load(model_path)
     # print("finish")
-
-    write_model_parameters()
-

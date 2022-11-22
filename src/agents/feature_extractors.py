@@ -93,7 +93,7 @@ class GNNGraphExtractor(nn.Module):
 
         x = self.pre_mp(x)
 
-        for i in range(len(self.convs) - 1):
+        for i in range(len(self.convs)):
             x = self.convs[i](x, edge_index, edge_feature)
             x = self.bns[i](x)
             x = F.leaky_relu(x)
@@ -162,7 +162,7 @@ class GINEGraphExtractor(nn.Module):
         for i in range(len(self.convs) - 1):
             x = self.convs[i](x, edge_index, edge_feature)
             x = self.bns[i](x)
-            x = F.leaky_relu(x)
+            # x = F.leaky_relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         x = global_mean_pool(x, batch)
@@ -193,7 +193,41 @@ class MLP(nn.Module):
         self.dropout = dropout
         self.output_size = output_size
 
+        self.device = device
+
     def forward(self, x):
+        x = x.to(self.device)
+        for i in range(len(self.layers)):
+            x = self.layers[i](x)
+            x = F.leaky_relu(x)
+            x = F.dropout(x, p=self.dropout)
+
+        x = F.normalize(x)
+        return x
+
+
+class MLPOneLayer(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_sizes: List[int],
+        output_size: int,
+        dropout: float = 0,
+        device: str = "cpu",
+    ) -> None:
+        super().__init__()
+
+        self.layers = nn.ModuleList()
+        self.bns = nn.ModuleList()
+
+        self.layers.append(nn.Linear(input_size, output_size))
+
+        self.dropout = dropout
+        self.output_size = output_size
+        self.device = device
+
+    def forward(self, x):
+        x = x.to(self.device)
         for i in range(len(self.layers)):
             x = self.layers[i](x)
             x = F.leaky_relu(x)
@@ -254,12 +288,14 @@ class EvalFeatureExtractor(nn.Module):
         sup_feature_extractor: nn.Module,
         ori_feature_extractor: nn.Module,
         statistic_extractor: nn.Module,
+        **kwargs
     ) -> None:
         super().__init__()
-
-        self.sup_feature_extractor = sup_feature_extractor
-        self.ori_feature_extractor = ori_feature_extractor
-        self.statistic_extractor = statistic_extractor
+        self.device = kwargs["device"]
+        self.sup_feature_extractor = sup_feature_extractor.to(self.device)
+        self.ori_feature_extractor = ori_feature_extractor.to(self.device)
+        self.statistic_extractor = statistic_extractor.to(self.device)
+        print("Eval feature extractor in device", self.device)
 
     def forward(self, observations):
         sup_vec = self.sup_feature_extractor(

@@ -4,12 +4,13 @@ import os
 import numpy as np
 from stable_baselines3.common.evaluation import evaluate_policy
 
-from stable_baselines3 import DQN
+from stable_baselines3 import DQN, SAC
 from lescode.namespace import asdict
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.buffers import DictReplayBuffer
+from stable_baselines3.common.utils import safe_mean
 import torch
 
 from .feature_extractor_name import FEATURE_EXTRACTOR_NAME
@@ -42,6 +43,20 @@ class SaveReplayBufferEveryNTimeSteps(BaseCallback):
         if self.n_calls % self.check_freq == 0:
             save_path = os.path.join(self.save_dir, "buffer_{}_step.pkl".format(self.n_calls))
             self.model.save_replay_buffer(save_path)
+        return True
+
+
+class TensorboardCallback(BaseCallback):
+    """
+    Custom callback for plotting additional values in tensorboard.
+    """
+
+    def __init__(self, verbose=0):
+        super(TensorboardCallback, self).__init__(verbose)
+
+    def _on_step(self) -> bool:
+        if len(self.model.ep_info_buffer) > 0 and len(self.model.ep_info_buffer[0]) > 0:
+            self.logger.record("rollout/ep_time_mean", safe_mean([ep_info["total_time"] for ep_info in self.model.ep_info_buffer]))
         return True
 
 
@@ -168,14 +183,17 @@ class DQNAgent:
                 file,
             )
 
-        device = torch.device(model_config["device"])
+        if torch.cuda.is_available():
+            device = torch.device(model_config["device"])
+        else:
+            device = torch.device("cpu")
         print("Device to train model", device)
 
         sup_feature_extractor = FEATURE_EXTRACTOR_NAME[
             extractor_config["sup_feature_extractor"]
         ](
-            node_dim=env_config["sup_node_dim"],
-            edge_dim=env_config["sup_edge_dim"],
+            node_dim=env_config["space_config"]["sup_node_dim"],
+            edge_dim=env_config["space_config"]["sup_edge_dim"],
             hidden_size=extractor_config["sup_hidden_size"],
             num_layers=extractor_config["sup_num_layers"],
             n_clusters=extractor_config["sup_n_clusters"],
@@ -186,8 +204,8 @@ class DQNAgent:
         ori_feature_extractor = FEATURE_EXTRACTOR_NAME[
             extractor_config["ori_feature_extractor"]
         ](
-            node_dim=env_config["ori_node_dim"],
-            edge_dim=env_config["ori_edge_dim"],
+            node_dim=env_config["space_config"]["ori_node_dim"],
+            edge_dim=env_config["space_config"]["ori_edge_dim"],
             hidden_size=extractor_config["ori_hidden_size"],
             num_layers=extractor_config["ori_num_layers"],
             n_clusters=extractor_config["ori_n_clusters"],
@@ -196,7 +214,7 @@ class DQNAgent:
         )
 
         statistic_extractor = FEATURE_EXTRACTOR_NAME[extractor_config["statistic_extractor"]](
-            input_size=env_config["statistic_dim"],
+            input_size=env_config["space_config"]["statistic_dim"],
             hidden_sizes=extractor_config["statistic_hidden_sizes"],
             output_size=extractor_config["statistic_output_size"],
             device=device,
@@ -213,10 +231,11 @@ class DQNAgent:
         )
 
         replay_buffer_class = None
-        if isinstance(env, BaseCutEnv):
-            replay_buffer_class = DictReplayBuffer
-        elif isinstance(env, PriorCutEnv):
+        if env.prior_buffer:
+            print("Priority Replay")
             replay_buffer_class = PriorDictReplayBuffer
+        else:
+            replay_buffer_class = DictReplayBuffer
 
         self.model = DQN(
             "MultiInputPolicy", env, replay_buffer_class=replay_buffer_class, policy_kwargs=policy_kwargs,
@@ -240,12 +259,124 @@ class DQNAgent:
             render=False,
             n_eval_episodes=learn_config.n_eval_episodes,
         )
+        tensorboard_callback = TensorboardCallback(verbose=1)
         logger = configure(log_path, ["stdout", "csv", "tensorboard"])
 
         self.model.set_logger(logger)
         self.model.learn(
             total_timesteps=learn_config.total_timesteps,
             log_interval=learn_config.log_interval,
-            callback=[eval_callback, log_callback, save_buffer_callback],
+            callback=[eval_callback, log_callback],
         )
         self.model.save(log_path + model_folder + ".pt")
+
+
+class SACAgent:
+    def __init__(self):
+        self.model = None
+
+    def train(
+            self,
+            env,
+            eval_env,
+            env_config,
+            extractor_config,
+            model_config,
+            learn_config,
+            model_folder,
+            pretrain_path=None,
+            log_path="../logs/",
+    ):
+        with open(log_path + "config.json", "w") as file:
+            json.dump(
+                {
+                    "dqn": asdict(model_config),
+                    "learn": asdict(learn_config),
+                    "env": asdict(env_config),
+                    "extractor": asdict(extractor_config),
+                },
+                file,
+            )
+
+        if torch.cuda.is_available():
+            device = torch.device(model_config["device"])
+        else:
+            device = torch.device("cpu")
+        print("Device to train model", device)
+
+        sup_feature_extractor = FEATURE_EXTRACTOR_NAME[
+            extractor_config["sup_feature_extractor"]
+        ](
+            node_dim=env_config["space_config"]["sup_node_dim"],
+            edge_dim=env_config["space_config"]["sup_edge_dim"],
+            hidden_size=extractor_config["sup_hidden_size"],
+            num_layers=extractor_config["sup_num_layers"],
+            n_clusters=extractor_config["sup_n_clusters"],
+            dropout=extractor_config["sup_dropout"],
+            device=device,
+        )
+
+        ori_feature_extractor = FEATURE_EXTRACTOR_NAME[
+            extractor_config["ori_feature_extractor"]
+        ](
+            node_dim=env_config["space_config"]["ori_node_dim"],
+            edge_dim=env_config["space_config"]["ori_edge_dim"],
+            hidden_size=extractor_config["ori_hidden_size"],
+            num_layers=extractor_config["ori_num_layers"],
+            n_clusters=extractor_config["ori_n_clusters"],
+            dropout=extractor_config["ori_dropout"],
+            device=device,
+        )
+
+        statistic_extractor = FEATURE_EXTRACTOR_NAME[extractor_config["statistic_extractor"]](
+            input_size=env_config["space_config"]["statistic_dim"],
+            hidden_sizes=extractor_config["statistic_hidden_sizes"],
+            output_size=extractor_config["statistic_output_size"],
+            device=device,
+        )
+
+        policy_kwargs = dict(
+            features_extractor_class=FeatureExtractor,
+            features_extractor_kwargs={
+                "sup_feature_extractor": sup_feature_extractor,
+                "ori_feature_extractor": ori_feature_extractor,
+                "statistic_extractor": statistic_extractor,
+                "device": device,
+            },
+        )
+
+        self.model = SAC(
+            "MultiInputPolicy", env, policy_kwargs=policy_kwargs,
+            **model_config
+        )
+
+        if not pretrain_path:
+            print("CREATE NEW MODEL")
+        else:
+            print("LOAD PRETRAIN MODEL")
+            self.model.set_parameters(pretrain_path)
+
+        log_callback = DumpLogsEveryNTimeSteps(n_steps=1000)
+        eval_callback = EvalCheckpointCallback(
+            eval_env,
+            best_model_save_path=log_path,
+            log_path=log_path,
+            eval_freq=learn_config.eval_freq,
+            deterministic=True,
+            render=False,
+            n_eval_episodes=learn_config.n_eval_episodes,
+        )
+
+        logger = configure(log_path, ["stdout", "csv", "tensorboard"])
+
+        self.model.set_logger(logger)
+        self.model.learn(
+            total_timesteps=learn_config.total_timesteps,
+            log_interval=learn_config.log_interval,
+            callback=[eval_callback, log_callback],
+        )
+        self.model.save(log_path + model_folder + ".pt")
+
+
+
+
